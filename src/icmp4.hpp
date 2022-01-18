@@ -54,35 +54,41 @@
 
 namespace network {
 
-class ICMP4Proto {
+	class ICMP4Proto {
 
-	enum Type : uint8_t {
-		EchoReply = 0,
-		DestinationUnreachable = 3,
-		SourceQuench = 4,
-		Redirect = 5,
-		Echo = 8,
-		TimeExceeded = 11,
-		ParameterProblem = 12,
-		Timestamp = 13,
-		TimestampReply = 14,
-		InfoRequest = 15,
-		InfoReply = 16,
+		enum Type : uint8_t {
+			EchoReply = 0,
+			DestinationUnreachable = 3,
+			SourceQuench = 4,
+			Redirect = 5,
+			Echo = 8,
+			TimeExceeded = 11,
+			ParameterProblem = 12,
+			Timestamp = 13,
+			TimestampReply = 14,
+			InfoRequest = 15,
+			InfoReply = 16,
+		};
+
+	public:
+		ICMP4Packet();
+		virtual ~ICMP4Packet();
+
+		Type ParseReply(std::vector<uint8_t> &);
+
+		std::vector<uint8_t> CreateEchoPacket();
+		std::vector<uint8_t> CreateInfoRequestPacket();
+		std::vector<uint8_t> CreateTimestampPacket();
+
+	private:
+		std::vector<uint8_t> parseEchoReply();
+		std::vector<uint8_t> parseDestinationUnreachable();
+		void parseSourceQuench();
+		std::vector<uint8_t> parseRedirect(); // use std string?
+		std::vector<uint8_t> parseTimeExceeded(); // use std string?
+		void parseParameterProblem();
+		void parseTimestampReply(/* timestamsp */);
+		void parseInfoReply();
 	};
-
-public:
-	ICMP4Packet();
-	virtual ~ICMP4Packet();
-
-	Type ParseReply(std::vector<uint8_t> &);
-
-	std::vector<uint8_t> CreateEchoPacket();
-	std::vector<uint8_t> CreateInfoRequestPacket();
-	std::vector<uint8_t> CreateTimestampPacket();
-
-private:
-
-};
-
 
 }
