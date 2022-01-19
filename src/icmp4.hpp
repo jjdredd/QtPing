@@ -50,6 +50,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <string>
 
 
 namespace network {
@@ -70,25 +71,36 @@ namespace network {
 			InfoReply = 16,
 		};
 
+		struct ICMP4TCCHeader {
+			void ParseTCC(uint8_t *);
+			uint8_t type, code;
+			uint16_t checksum;
+			static const unsigned size = 4; // four bytes
+		};
+
 	public:
-		ICMP4Packet();
-		virtual ~ICMP4Packet();
+		ICMP4Proto();
+		virtual ~ICMP4Proto();
 
-		Type ParseReply(std::vector<uint8_t> &);
+		bool ParseForEcho(std::vector<uint8_t> &, unsigned &);
 
-		std::vector<uint8_t> CreateEchoPacket();
+		Type ParseReply(std::vector<uint8_t> &, unsigned &);
+
+		std::vector<uint8_t> CreateEchoPacket(std::vector<uint8_t> &,
+						      uint16_t, uint16_t);
 		std::vector<uint8_t> CreateInfoRequestPacket();
 		std::vector<uint8_t> CreateTimestampPacket();
 
 	private:
-		std::vector<uint8_t> parseEchoReply();
-		std::vector<uint8_t> parseDestinationUnreachable();
-		void parseSourceQuench();
-		std::vector<uint8_t> parseRedirect(); // use std string?
-		std::vector<uint8_t> parseTimeExceeded(); // use std string?
-		void parseParameterProblem();
-		void parseTimestampReply(/* timestamsp */);
-		void parseInfoReply();
+		uint8_t parseEchoReply(std::vector<uint8_t> &);
+		uint8_t parseDestinationUnreachable(std::vector<uint8_t> &,
+						    std::string &);
+		uint8_t parseSourceQuench(std::vector<uint8_t> &);
+		uint8_t parseRedirect(std::vector<uint8_t> & /*, gateway address */);
+		uint8_t parseTimeExceeded(std::vector<uint8_t> &); // use std string?
+		uint8_t parseParameterProblem(std::vector<uint8_t> &);
+		void parseTimestampReply(std::vector<uint8_t> & /*, timestamsp */);
+		void parseInfoReply(std::vector<uint8_t> &);
 	};
 
 }
