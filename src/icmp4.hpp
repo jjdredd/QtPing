@@ -71,18 +71,9 @@ namespace network {
 			InfoReply = 16,
 		};
 
-		struct ICMP4TCCHeader {
-			void ParseTCC(uint8_t *);
-			uint8_t type, code;
-			uint16_t checksum;
-			static const unsigned size = 4; // four bytes
-		};
-
 	public:
 		ICMP4Proto();
 		virtual ~ICMP4Proto();
-
-		bool ParseForEcho(std::vector<uint8_t> &, unsigned &);
 
 		Type ParseReply(std::vector<uint8_t> &, unsigned &);
 
@@ -91,16 +82,46 @@ namespace network {
 		std::vector<uint8_t> CreateInfoRequestPacket();
 		std::vector<uint8_t> CreateTimestampPacket();
 
+		// internal state
+		bool GetState() const;
+		void ResetState();
+
+		Type GetType() const;
+		uint8_t GetCode() const;
+		uint16_t GetChecksum() const;
+		unsigned GetDataOffset() const;
+
+		uint16_t GetIdentifier() const;
+		uint16_t GetSequenceNumber() const;
+
 	private:
+		void parseTCC(std::vector<uint8_t> &);
+		
 		uint8_t parseEchoReply(std::vector<uint8_t> &);
-		uint8_t parseDestinationUnreachable(std::vector<uint8_t> &,
-						    std::string &);
+		uint8_t parseDestinationUnreachable(std::vector<uint8_t> &);
 		uint8_t parseSourceQuench(std::vector<uint8_t> &);
-		uint8_t parseRedirect(std::vector<uint8_t> & /*, gateway address */);
+		uint8_t parseRedirect(std::vector<uint8_t> &);
 		uint8_t parseTimeExceeded(std::vector<uint8_t> &); // use std string?
 		uint8_t parseParameterProblem(std::vector<uint8_t> &);
 		void parseTimestampReply(std::vector<uint8_t> & /*, timestamsp */);
 		void parseInfoReply(std::vector<uint8_t> &);
+
+		uint16_t computeChecksum(std::vector<uint8_t> &);
+
+		// internal state variables
+		bool state; // true if internal vars are filled in
+
+		// TCC - type, code, checksum (present in every ICMP packet
+		uint8_t type, code;
+		uint16_t checksum;
+		static const unsigned tcc_size = 4; // four bytes
+
+		uint16_t n_data; //   data offset
+		uint32_t gateway_address; // for RedirectMessage
+		uint16_t id, seqn;	  // for Echo or EchoReply, InfoReq, InfoRep
+		uint32_t originate_ts, receive_ts, transmit_ts; // timestamps
+
+		std::string reason // for DestinationUnreachable
 	};
 
 }
