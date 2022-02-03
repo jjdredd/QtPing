@@ -207,6 +207,23 @@ uint16_t network::ICMP4Proto::computeChecksum(std::vector<uint8_t> &packet) {
 	// the checksum field to zero
 	
 	std::vector<uint8_t> buf(packet);
+	uint16_t *array = buf.data();
+	uint16_t res;
+	int size = buf.size() / 2;
+	int left = buf.size() % 2;
 
-	
+	int sum = 0;
+
+	array[1] = 0;		// set checksum field (specification)
+	for (unsigned n = 0; n < size; n++) {
+		sum += array[n];
+	}
+
+	if (left != 0) {
+		sum += *(static_cast<uint8_t *>(&array[n]));
+	}
+	sum = (sum >> 16) + (sum & 0xffff);
+	sum += (sum >> 16);
+	res = ~sum;
+	return res;
 }

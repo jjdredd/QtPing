@@ -10,6 +10,10 @@ namespace network {
 	public:
 		ipv4_header() { std::fill(rep_, rep_ + sizeof(rep_), 0); }
 
+		void ParsePacket(std::vector<uint8_t> &pack) {
+			std::copy_n(pack.begin(), std::min(pack.size(), sizeof(rep_)), rep_);
+		}
+
 		unsigned char version() const { return (rep_[0] >> 4) & 0xF; }
 		unsigned short header_length() const { return (rep_[0] & 0xF) * 4; }
 		unsigned char type_of_service() const { return rep_[1]; }
