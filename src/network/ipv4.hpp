@@ -2,6 +2,10 @@
 
 #include <cstdint>
 #include <vector>
+#include <algorithm>
+
+#include <boost/asio/ip/address_v4.hpp>
+#include <boost/asio.hpp>
 
 namespace network {
 

@@ -72,7 +72,8 @@ network::ICMP4Proto::Type network::ICMP4Proto::ParseReply(std::vector<uint8_t> &
 	return type;		// change (?), we still need type (?)
 }
 
-std::vector<uint8_t> network::ICMP4Proto::CreateEchoPacket(std::vector<uint8_t> &data) {
+std::vector<uint8_t> network::ICMP4Proto::CreateEchoPacket(std::vector<uint8_t> &data,
+							   id, seqn) {
 
 	unsigned header_size = tcc_size + 2*sizeof(uint16_t);
 	std::vector<uint8_t> packet(header_size + data.size());
@@ -81,7 +82,10 @@ std::vector<uint8_t> network::ICMP4Proto::CreateEchoPacket(std::vector<uint8_t> 
 	*(static_cast<uint16_t *>(&packet[2])) = 0; // checksum
 	*(static_cast<uint16_t *>(&packet[tcc_size])) = id;
 	*(static_cast<uint16_t *>(&packet[tcc_size + sizeof(uint16_t)])) = seqn;
-	std::copy(data.begin(), data.end(), packet.begin() + header_size);
+
+	if (data.size() > 0) {
+		std::copy(data.begin(), data.end(), packet.begin() + header_size);
+	}
 
 	// compute checksum and fill it in
 	*(static_cast<uint16_t *>(&packet[2])) = computeChecksum(packet); // checksum
