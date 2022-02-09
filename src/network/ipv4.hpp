@@ -4,13 +4,17 @@
 #include <vector>
 #include <algorithm>
 
-#include <boost/asio/ip/address_v4.hpp>
+#include <boost/asio/ip/address.hpp> // _v4 (?)
 #include <boost/asio.hpp>
 
 namespace network {
 
-	class ipv4_header
-	{
+	class ipv4_header {
+		// Copyright (c) 2003-2021 Christopher M. Kohlhoff
+		// (chris at kohlhoff dot com)
+		//
+		// Distributed under the Boost Software License, Version 1.0.
+
 	public:
 		ipv4_header() { std::fill(rep_, rep_ + sizeof(rep_), 0); }
 

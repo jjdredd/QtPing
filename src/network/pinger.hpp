@@ -6,6 +6,8 @@
 #include <chrono>
 #include <string>
 
+#include <boost/system/error_code.hpp>
+
 #include "ipv4.hpp"
 
 
@@ -37,17 +39,22 @@ namespace network {
 		};
 
 	public:
-		HostInfo();
+		HostInfo(icmp::endpoint &);
 		virtual ~HostInfo();
 
 		std::vector<ping_reply> GetReplies(); // std::swap or std::move vectors
+		void PushReply(ping_reply &);
+		void TimeSent(chrono::steady_clock::time_point &);
 
 	private:
-		double mean_latency, stdev_latency;
+
+		void computeStats(ping_reply &);
+
+		double mean_latency, stdev_latency; // use stats class
 		icmp::endpoint destination;
-		unsigned sequence;
-		chrono::steady_clock::time_point time_last;
-		bool reply_received;
+		unsigned sequence; // not used?
+		chrono::steady_clock::time_point time_last_sent;
+		bool reply_received; // sent and received (false if not sent) or timeout
 
 		// identifier will be the index in the hostinfo array in Pinger class
 
@@ -65,6 +72,8 @@ namespace network {
 	public:
 		Pinger();
 		virtual ~Pinger();
+
+		void AddHost(HostInfo &);
 
 	private:
 		icmp::resolver host_resolver;
