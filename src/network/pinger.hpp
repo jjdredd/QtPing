@@ -39,7 +39,7 @@ namespace network {
 		};
 
 	public:
-		HostInfo(icmp::endpoint &);
+		HostInfo(icmp::endpoint &, std::string &);
 		virtual ~HostInfo();
 
 		std::vector<ping_reply> GetReplies(); // std::swap or std::move vectors
@@ -52,9 +52,10 @@ namespace network {
 
 		double mean_latency, stdev_latency; // use stats class
 		icmp::endpoint destination;
-		unsigned sequence; // not used?
+		unsigned sequence;
 		chrono::steady_clock::time_point time_last_sent;
 		bool reply_received; // sent and received (false if not sent) or timeout
+		std::string host_string;
 
 		// identifier will be the index in the hostinfo array in Pinger class
 
@@ -70,15 +71,22 @@ namespace network {
 	class Pinger {
 
 	public:
-		Pinger();
+		Pinger(boost::asio::io_context &);
 		virtual ~Pinger();
 
-		void AddHost(HostInfo &);
+		void AddHost(std::string &);
 
 	private:
+		icmp::endpoint resolveHostOrIP(std::string &);
+		void startSend();
+		void startReceive();
+		void timeOut();
+		void receive();
+
 		icmp::resolver host_resolver;
 		icmp::socket sock;
 		unsigned identifier; // uint8_t??
+		steady_timer stimer;
 		// reply buffer?
 
 		std::vector<HostInfo> remote_hosts;

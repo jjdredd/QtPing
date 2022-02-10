@@ -1,14 +1,16 @@
 #include <algorithm>
 
 #include "pinger.hpp"
+#include "icmp4.hpp"
 
 //
 // HostInfo
 // 
 
-network::HostInfo::HostInfo(icmp::endpoint &host)
+network::HostInfo::HostInfo(icmp::endpoint &host, std::string &hs)
 	: mean_latency(0), stdev_latency(0)
-	, destination(host), reply_received(false) {
+	, destination(host), reply_received(false)
+	, host_string(name) {
 
 }
 
@@ -38,17 +40,56 @@ void network::HostInfo::TimeSent(chrono::steady_clock::time_point &t) {
 // Pinger
 // 
 
+network::Pinger::Pinger(boost::asio::io_context &io)
+	: host_resolver(io), sock(io), stimer(io) {
 
+	startSend();
+	startReceive();
+}
 
-#if 0
-	destination = *resolver_.resolve(icmp::v4(), host, "").begin();
+network::Pinger::~Pinger() {}
+
+icmp::endpoint network::Pinger::resolveHostOrIP(std::string &host) {
+
+	// destination = *resolver_.resolve(icmp::v4(), host, "").begin();
+
+	icmp::endpoint dest;
 
 	boost::system::error_code ec;
-	icmp::resolver host_resolver;
 	boost::asio::ip::address ip = boost::asio::ip::make_address(host, ec);
 	if (ec.failed()) {
-		host_resolver();
+		dest = *resolver_.resolve(icmp::v4(), host, "").begin();
 	} else {
-		destination = boost::asio::ip::endpoint(ip);
+		dest = boost::asio::ip::endpoint(ip);
 	}
-#endif
+
+	return dest;
+}
+
+void network::Pinger::AddHost(std::string &host) {
+	icmp::endpoint dest = resolveHostOrIP(host);
+	HostInfo hi(dest, host);
+	remote_hosts.push_back(hi);
+}
+
+// add an option to remove hosts too
+
+void network::Pinger::startSend() {
+	for (const HostInfo &h : remote_hosts) {
+		ICMP4Proto protocol;
+		// need to create packet
+		sock.send_to();
+		// ctime = steady_timer::clock_type::now();
+	}
+	stimer.
+}
+
+void network::Pinger::timeOut() {
+
+}
+
+void network::Pinger::startReceive() {
+
+}
+
+void receive() {}
