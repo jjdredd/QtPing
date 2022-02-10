@@ -9,7 +9,7 @@
 
 network::HostInfo::HostInfo(icmp::endpoint &host, std::string &hs)
 	: mean_latency(0), stdev_latency(0)
-	, destination(host), reply_received(false)
+	, destination(host), sequence(0), reply_received(false)
 	, host_string(name) {
 
 }
@@ -35,6 +35,8 @@ void network::HostInfo::TimeSent(chrono::steady_clock::time_point &t) {
 	time_last_sent = t;
 	reply_received = false;
 }
+
+icmp::endpoint network::HostInfo::GetDestination() const { return destination; }
 
 //
 // Pinger
@@ -75,11 +77,18 @@ void network::Pinger::AddHost(std::string &host) {
 // add an option to remove hosts too
 
 void network::Pinger::startSend() {
-	for (const HostInfo &h : remote_hosts) {
+	for (unsigned i = 0; i < remote_hosts.size(); i++) {
+		HostInfo h = remote_hosts[i];
+
 		ICMP4Proto protocol;
+		std::vector<uint8_t> packet;
+
+		uint16_t id = (identifier << 16) | (i & 0xFFFF);
+		protocol.CreateEchoPacket(packet, id, h.sequence);
 		// need to create packet
-		sock.send_to();
-		// ctime = steady_timer::clock_type::now();
+		sock.send_to(packet, h.GetDestination());
+		// boost::asio::buffer(packet)
+		h.TimeSent(steady_timer::clock_type::now());
 	}
 	stimer.
 }

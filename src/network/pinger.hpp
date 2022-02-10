@@ -45,6 +45,7 @@ namespace network {
 		std::vector<ping_reply> GetReplies(); // std::swap or std::move vectors
 		void PushReply(ping_reply &);
 		void TimeSent(chrono::steady_clock::time_point &);
+		icmp::endpoint GetDestination() const ;
 
 	private:
 
@@ -85,7 +86,7 @@ namespace network {
 
 		icmp::resolver host_resolver;
 		icmp::socket sock;
-		unsigned identifier; // uint8_t??
+		uint8_t identifier; // uint8_t??
 		steady_timer stimer;
 		// reply buffer?
 

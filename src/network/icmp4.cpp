@@ -73,7 +73,7 @@ network::ICMP4Proto::Type network::ICMP4Proto::ParseReply(std::vector<uint8_t> &
 }
 
 std::vector<uint8_t> network::ICMP4Proto::CreateEchoPacket(std::vector<uint8_t> &data,
-							   id, seqn) {
+							   uint8_t id, uint16_t seqn) {
 
 	unsigned header_size = tcc_size + 2*sizeof(uint16_t);
 	std::vector<uint8_t> packet(header_size + data.size());
