@@ -38,6 +38,10 @@ void network::HostInfo::TimeSent(chrono::steady_clock::time_point &t) {
 
 icmp::endpoint network::HostInfo::GetDestination() const { return destination; }
 
+bool network::HostInfo::ReplyReceived() const {
+	return reply_received;
+}
+
 //
 // Pinger
 // 
@@ -85,16 +89,30 @@ void network::Pinger::startSend() {
 
 		uint16_t id = (identifier << 16) | (i & 0xFFFF);
 		protocol.CreateEchoPacket(packet, id, h.sequence);
-		// need to create packet
 		sock.send_to(packet, h.GetDestination());
 		// boost::asio::buffer(packet)
 		h.TimeSent(steady_timer::clock_type::now());
 	}
-	stimer.
+	stimer.expires_after(chrono::seconds(5));
+	stimer.async_wait( [&] { this->timeOut(); } );
 }
 
 void network::Pinger::timeOut() {
+	for (unsigned i = 0; i < remote_hosts.size(); i++) {
+		HostInfo h = remote_hosts[i];
+		HostInfo::ping_reply pr;
+		// if haven't received, push reply structure set to timed out
 
+		if (h.ReplyReceived()) {
+			continue;
+		}
+
+		pr.status = HostInfo::Timeout;
+		// get and set sequence number
+		// make hostinfo friend class?
+	}
+	stimer.expires_after(chrono::seconds(1));
+	stimer.async_wait( [&] { this->startSend(); } );
 }
 
 void network::Pinger::startReceive() {

@@ -46,6 +46,7 @@ namespace network {
 		void PushReply(ping_reply &);
 		void TimeSent(chrono::steady_clock::time_point &);
 		icmp::endpoint GetDestination() const ;
+		bool ReplyReceived() const;
 
 	private:
 
