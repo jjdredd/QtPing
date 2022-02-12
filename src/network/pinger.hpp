@@ -15,12 +15,16 @@ using boost::asio::ip::icmp;
 using boost::asio::steady_timer;
 namespace chrono = boost::asio::chrono;
 
+class Pinger;
+
 namespace network {
 
 	// 
 	// class to hold all the host info regarding connectivity
 	// 
 	class HostInfo {
+
+		friend class Pinger;
 
 		enum reply_status {
 			Reply,
@@ -46,7 +50,6 @@ namespace network {
 		void PushReply(ping_reply &);
 		void TimeSent(chrono::steady_clock::time_point &);
 		icmp::endpoint GetDestination() const ;
-		bool ReplyReceived() const;
 
 	private:
 
@@ -83,7 +86,7 @@ namespace network {
 		void startSend();
 		void startReceive();
 		void timeOut();
-		void receive();
+		void receive(unsigned);
 
 		icmp::resolver host_resolver;
 		icmp::socket sock;
@@ -92,6 +95,7 @@ namespace network {
 		// reply buffer?
 
 		std::vector<HostInfo> remote_hosts;
+		std::vector<uint8_t> recvbuff;
 	};
 
 }
