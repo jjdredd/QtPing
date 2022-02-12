@@ -18,8 +18,20 @@ namespace network {
 	public:
 		ipv4_header() { std::fill(rep_, rep_ + sizeof(rep_), 0); }
 
-		void ParsePacket(std::vector<uint8_t> &pack) {
-			std::copy_n(pack.begin(), std::min(pack.size(), sizeof(rep_)), rep_);
+		int ParsePacket(std::vector<uint8_t> &pack) {
+
+			if (pack.size() < 20) {
+				return 0;
+			}
+			std::copy_n(pack.begin(), std::min(pack.size(), 20), rep_);
+			unsigned short options_length = header_length() - 20;
+			if (options_length < 0 || options_length > 40) {
+				return 0;
+			} else {
+				is.read(reinterpret_cast<uint8_t *>(header.rep_) + 20,
+					options_length);
+			}
+			return options_length + 20;
 		}
 
 		unsigned char version() const { return (rep_[0] >> 4) & 0xF; }
