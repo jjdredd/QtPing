@@ -1,5 +1,7 @@
 #include <algorithm>
 
+#include <iostream>
+
 #include "pinger.hpp"
 #include "icmp4.hpp"
 
@@ -44,6 +46,9 @@ icmp::endpoint network::HostInfo::GetDestination() const { return destination; }
 
 network::Pinger::Pinger(boost::asio::io_context &io)
 	: host_resolver(io), sock(io), stimer(io) {
+
+	// compute and set identifier
+	identifier = 0xA8A8;
 
 	startSend();
 	startReceive();
@@ -121,8 +126,21 @@ void network::Pinger::startReceive() {
 void receive(unsigned size) {
 	ipv4_header ip_header;
 	ICMP4Proto protocol;
+	unsigned data_offset;
+	HostInfo::ping_reply pr;
 
-	ip_header.ParsePacket(recvbuff);
+	int ip_size = ip_header.ParsePacket(recvbuff);
+
+	std::vector<uint8_t> icmp_content(recvbuff.begin() + ip_size, recvbuff.end());
+	Type icmp_type = protocol.ParseReply(icmp_content, data_offset);
+
+	if (icmp_type != ICMP4Proto::EchoReply) {
+		// not an echo reply packet, fill out the ping_reply struct appropriately
+		std::cerr << "Received not echo: " << std::endl;
+	} else {
+		// this is an echo reply
+
+	}
 
 	startReceive();
 }
