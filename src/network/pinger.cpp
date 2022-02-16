@@ -25,6 +25,7 @@ std::vector<ping_reply> network::HostInfo::GetReplies() {
 void network::HostInfo::PushReply(ping_reply &reply) {
 	computeStats(reply);
 	replies.push_back(reply);
+	sequence = reply.sequence;
 	reply_received = true;
 }
 
@@ -40,9 +41,24 @@ void network::HostInfo::TimeSent(chrono::steady_clock::time_point &t) {
 
 icmp::endpoint network::HostInfo::GetDestination() const { return destination; }
 
+
+static uint16_t pack_identifier(uint8_t id, integer n) {
+	uint16_t idex = id;
+	return (idex << 16) | (n & 0xFFFF);
+}
+
+static uint8_t unpack_number(uint16_t packet_id) {
+	return packet_id & 0xFFFF;
+}
+
+static uint8_t unpack_id(uint16_t packet_id) {
+	return (packet_id >> 16) & 0xFFFF;
+}
+
+
 //
 // Pinger
-// 
+//
 
 network::Pinger::Pinger(boost::asio::io_context &io)
 	: host_resolver(io), sock(io), stimer(io) {
@@ -88,11 +104,11 @@ void network::Pinger::startSend() {
 		ICMP4Proto protocol;
 		std::vector<uint8_t> packet;
 
-		uint16_t id = (identifier << 16) | (i & 0xFFFF);
+		uint16_t id = pack_identifier(identifier, i);
 		protocol.CreateEchoPacket(packet, id, h.sequence);
 		sock.send_to(packet, h.GetDestination());
 		// boost::asio::buffer(packet)
-		h.TimeSent(steady_timer::clock_type::now());
+		h.TimeSent(steady_timer::clock_type::now()); // sets reply_received=false
 	}
 	stimer.expires_after(chrono::seconds(5));
 	stimer.async_wait( [&] { this->timeOut(); } );
@@ -135,11 +151,33 @@ void receive(unsigned size) {
 	Type icmp_type = protocol.ParseReply(icmp_content, data_offset);
 
 	if (icmp_type != ICMP4Proto::EchoReply) {
-		// not an echo reply packet, fill out the ping_reply struct appropriately
+		// not an echo reply packet,
+		// the ping_reply struct will be filled out appropriately
+		// in the timeout?
 		std::cerr << "Received not echo: " << std::endl;
 	} else {
 		// this is an echo reply
+		//
+		// check the packet checksum?? (at least icmp)
+		uint16_t packet_id = protocol.GetIdentifier();
+		
+		if (unpack_id(packet_id) != identifier
+		    || unpack_number(packet_id) >= remote_hosts.size()) {
+				// not our packet!
+				// or something's wrong
+		}
 
+		HostInfo &h = remote_hosts[unpack_number(packet_id)];
+
+		chrono::steady_clock::time_point now = chrono::steady_clock::now();
+		pr.latency = now - h.time_last_sent;
+		pr.status = HostInfo::Reply;
+		pr.time_to_live = ip_header.time_to_live();
+		pr.sequence = protocol.GetSequenceNumber();
+		pr.remote_ip = ip_header.source_address();
+		pr.remote_hostname = ""; // leave out the hostname for now
+
+		h.PushReply(pr);
 	}
 
 	startReceive();
