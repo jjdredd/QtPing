@@ -57,6 +57,7 @@ namespace network {
 
 	class ICMP4Proto {
 
+	public:
 		enum Type : uint8_t {
 			EchoReply = 0,
 			DestinationUnreachable = 3,
@@ -71,7 +72,6 @@ namespace network {
 			InfoReply = 16,
 		};
 
-	public:
 		ICMP4Proto();
 		virtual ~ICMP4Proto();
 
@@ -95,16 +95,19 @@ namespace network {
 		uint16_t GetSequenceNumber() const;
 
 	private:
+
 		void parseTCC(std::vector<uint8_t> &);
-		
+
+
+		// all the below functions must be called after parseTCC is called!
 		uint8_t parseEchoReply(std::vector<uint8_t> &);
 		uint8_t parseDestinationUnreachable(std::vector<uint8_t> &);
 		uint8_t parseSourceQuench(std::vector<uint8_t> &);
 		uint8_t parseRedirect(std::vector<uint8_t> &);
 		uint8_t parseTimeExceeded(std::vector<uint8_t> &); // use std string?
 		uint8_t parseParameterProblem(std::vector<uint8_t> &);
-		void parseTimestampReply(std::vector<uint8_t> & /*, timestamsp */);
-		void parseInfoReply(std::vector<uint8_t> &);
+		uint8_t parseTimestampReply(std::vector<uint8_t> & /*, timestamsp */);
+		uint8_t parseInfoReply(std::vector<uint8_t> &);
 
 		uint16_t computeChecksum(std::vector<uint8_t> &);
 
@@ -121,7 +124,7 @@ namespace network {
 		uint16_t id, seqn;	  // for Echo or EchoReply, InfoReq, InfoRep
 		uint32_t originate_ts, receive_ts, transmit_ts; // timestamps
 
-		std::string reason // for DestinationUnreachable
+		std::string reason; // for DestinationUnreachable
 	};
 
 }

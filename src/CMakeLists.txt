@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.18)
 
 project(QtPing)
 
-find_package(Boost 1.36.0 REQUIRED COMPONENTS program_options system asio)
+find_package(Boost 1.36.0 REQUIRED COMPONENTS program_options system)
 
 # set CFLAGS etc
 set(WFLAGS "-W -Wall -Wextra -g -std=c++17")

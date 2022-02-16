@@ -23,13 +23,14 @@ namespace network {
 			if (pack.size() < 20) {
 				return 0;
 			}
-			std::copy_n(pack.begin(), std::min(pack.size(), 20), rep_);
+			std::copy_n(pack.begin(),
+				    std::min(static_cast<int>(pack.size()), 20), rep_);
 			unsigned short options_length = header_length() - 20;
 			if (options_length < 0 || options_length > 40) {
 				return 0;
 			} else {
-				is.read(reinterpret_cast<uint8_t *>(header.rep_) + 20,
-					options_length);
+				std::copy_n(reinterpret_cast<uint8_t *>(rep_) + 20,
+					    options_length);
 			}
 			return options_length + 20;
 		}
