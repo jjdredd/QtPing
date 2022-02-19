@@ -3,4 +3,6 @@ include_directories(AFTER "${CMAKE_SOURCE_DIR}/network")
 
 add_executable(pinger_test.elf pinger_test.cpp)
 
-target_link_libraries(pinger_test.elf PIBLIC network ${Boost_LIBRARIES})
+set_target_properties(pinger_test.elf PROPERTIES LINK_FLAGS "-lpthread")
+
+target_link_libraries(pinger_test.elf PUBLIC network PUBLIC ${Boost_LIBRARIES})

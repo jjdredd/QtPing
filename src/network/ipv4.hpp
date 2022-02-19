@@ -25,12 +25,12 @@ namespace network {
 			}
 			std::copy_n(pack.begin(),
 				    std::min(static_cast<int>(pack.size()), 20), rep_);
-			unsigned short options_length = header_length() - 20;
+			short options_length = header_length() - 20;
 			if (options_length < 0 || options_length > 40) {
 				return 0;
 			} else {
-				std::copy_n(reinterpret_cast<uint8_t *>(rep_) + 20,
-					    options_length);
+				std::copy_n(pack.begin() + 20, options_length,
+					    reinterpret_cast<uint8_t *>(rep_) + 20);
 			}
 			return options_length + 20;
 		}

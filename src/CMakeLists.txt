@@ -16,3 +16,4 @@ add_subdirectory(test)
 
 
 # target_link_libraries(YourExecutable ${Boost_LIBRARIES})
+# set_target_properties(pinger_test.elf PROPERTIES LINK_FLAGS "-lpthread")

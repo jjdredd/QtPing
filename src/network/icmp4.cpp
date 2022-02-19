@@ -1,5 +1,6 @@
 #include <icmp4.hpp>
 #include <algorithm>
+#include <iostream>
 
 
 network::ICMP4Proto::ICMP4Proto()
@@ -90,6 +91,11 @@ std::vector<uint8_t> network::ICMP4Proto::CreateEchoPacket(std::vector<uint8_t> 
 
 	// compute checksum and fill it in
 	*(reinterpret_cast<uint16_t *>(&packet[2])) = computeChecksum(packet); // checksum
+
+	for (uint8_t v : packet) {
+		std::cerr << std::hex << (unsigned) v << ", ";
+	}
+	std::cerr << std::endl;
 
 	return packet;
 }

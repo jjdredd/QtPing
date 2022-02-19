@@ -35,7 +35,7 @@ namespace network {
 
 		struct ping_reply {
 			reply_status status;
-			std::chrono::duration latency;
+			chrono::steady_clock::duration latency;
 			unsigned int time_to_live;
 			unsigned int sequence;
 			boost::asio::ip::address_v4 remote_ip;
@@ -86,7 +86,7 @@ namespace network {
 		void startSend();
 		void startReceive();
 		void timeOut();
-		void receive(unsigned);
+		void receive(std::size_t);
 
 		icmp::resolver host_resolver;
 		icmp::socket sock;
@@ -95,7 +95,8 @@ namespace network {
 		// reply buffer?
 
 		std::vector<HostInfo> remote_hosts;
-		std::vector<uint8_t> recvbuff;
+		std::vector<uint8_t> recvbuff, requestBody;
+		unsigned bufsz;
 	};
 
 }

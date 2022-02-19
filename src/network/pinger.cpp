@@ -12,13 +12,13 @@
 network::HostInfo::HostInfo(icmp::endpoint &host, std::string &hs)
 	: mean_latency(0), stdev_latency(0)
 	, destination(host), sequence(0), reply_received(false)
-	, host_string(name) {
+	, host_string(hs) {
 
 }
 
 network::HostInfo::~HostInfo() {}
 
-std::vector<ping_reply> network::HostInfo::GetReplies() {
+std::vector<network::HostInfo::ping_reply> network::HostInfo::GetReplies() {
 	return std::move(replies);
 }
 
@@ -37,22 +37,23 @@ void network::HostInfo::computeStats(ping_reply &reply) {
 void network::HostInfo::TimeSent(chrono::steady_clock::time_point &t) {
 	time_last_sent = t;
 	reply_received = false;
+	sequence++;
 }
 
 icmp::endpoint network::HostInfo::GetDestination() const { return destination; }
 
 
-static uint16_t pack_identifier(uint8_t id, integer n) {
+static uint16_t pack_identifier(uint8_t id, unsigned n) {
 	uint16_t idex = id;
-	return (idex << 16) | (n & 0xFFFF);
+	return (idex << 8) | (n & 0xFF);
 }
 
 static uint8_t unpack_number(uint16_t packet_id) {
-	return packet_id & 0xFFFF;
+	return packet_id & 0xFF;
 }
 
 static uint8_t unpack_id(uint16_t packet_id) {
-	return (packet_id >> 16) & 0xFFFF;
+	return (packet_id >> 8) & 0xFF;
 }
 
 
@@ -61,10 +62,14 @@ static uint8_t unpack_id(uint16_t packet_id) {
 //
 
 network::Pinger::Pinger(boost::asio::io_context &io)
-	: host_resolver(io), sock(io), stimer(io) {
+	: host_resolver(io), sock(io, icmp::v4()), stimer(io) {
 
 	// compute and set identifier
-	identifier = 0xA8A8;
+	identifier = 0xA8;
+	requestBody = {0x43, 0x28};
+
+	bufsz = 66000;
+	recvbuff.resize(bufsz, 0);
 
 	startSend();
 	startReceive();
@@ -74,17 +79,18 @@ network::Pinger::~Pinger() {}
 
 icmp::endpoint network::Pinger::resolveHostOrIP(std::string &host) {
 
-	// destination = *resolver_.resolve(icmp::v4(), host, "").begin();
-
 	icmp::endpoint dest;
 
 	boost::system::error_code ec;
-	boost::asio::ip::address ip = boost::asio::ip::make_address(host, ec);
-	if (ec.failed()) {
-		dest = *resolver_.resolve(icmp::v4(), host, "").begin();
-	} else {
-		dest = boost::asio::ip::endpoint(ip);
-	}
+	dest = *host_resolver.resolve(icmp::v4(), host, "").begin();
+	// boost::asio::ip::address ip = boost::asio::ip::make_address(host, ec);
+	// if (ec.failed()) {
+	// 	dest = *host_resolver.resolve(icmp::v4(), host, "").begin();
+	// 	std::cout << "resolving host name" << std::endl;
+	// } else {
+	// 	std::cout << "using an IP addres" << std::endl;
+	// 	dest = boost::asio::ip::icmp::endpoint(ip, 10);
+	// }
 
 	return dest;
 }
@@ -93,25 +99,35 @@ void network::Pinger::AddHost(std::string &host) {
 	icmp::endpoint dest = resolveHostOrIP(host);
 	HostInfo hi(dest, host);
 	remote_hosts.push_back(hi);
+	std::cout << "adding host: " << hi.GetDestination() << std::endl;
 }
 
 // add an option to remove hosts too
 
 void network::Pinger::startSend() {
 	for (unsigned i = 0; i < remote_hosts.size(); i++) {
-		HostInfo h = remote_hosts[i];
+		HostInfo &h = remote_hosts[i];
+		
 
 		ICMP4Proto protocol;
-		std::vector<uint8_t> packet;
-
-		uint16_t id = pack_identifier(identifier, i);
-		protocol.CreateEchoPacket(packet, id, h.sequence);
-		sock.send_to(packet, h.GetDestination());
+		uint16_t id = pack_identifier(identifier, i + 1);
+		std::vector<uint8_t> packet = protocol.CreateEchoPacket(requestBody,
+									id, h.sequence);
+		std::cerr << "sending " << packet.size() << " bytes to: "
+			  << h.GetDestination() << std::endl;
+		sock.send_to(boost::asio::buffer(packet), h.GetDestination());
 		// boost::asio::buffer(packet)
-		h.TimeSent(steady_timer::clock_type::now()); // sets reply_received=false
+		chrono::steady_clock::time_point now = chrono::steady_clock::now();
+		h.TimeSent(now); // sets reply_received=false
 	}
 	stimer.expires_after(chrono::seconds(5));
-	stimer.async_wait( [&] { this->timeOut(); } );
+	stimer.async_wait( [&] (const boost::system::error_code& error)
+	{
+		if (error) {
+			std::cerr << "start send error " << error.message() << std::endl;
+		}
+		this->timeOut();
+	});
 }
 
 void network::Pinger::timeOut() {
@@ -125,30 +141,48 @@ void network::Pinger::timeOut() {
 		}
 
 		pr.status = HostInfo::Timeout;
-		pr.sequence = ++h.sequence;
+		pr.sequence = ++h.sequence; // why "++" ?
 		h.PushReply(pr);
 	}
 	stimer.expires_after(chrono::seconds(1));
-	stimer.async_wait( [&] { this->startSend(); } );
+	stimer.async_wait( [&] (const boost::system::error_code& error)
+	{
+		if (error) {
+			std::cerr << "timeout error " << error.message() << std::endl;
+		}
+		this->startSend();
+	});
 }
 
 void network::Pinger::startReceive() {
-	recvbuff.reserve(66000);
 	sock.async_receive( boost::asio::buffer(recvbuff),
-			    [&] (const boost::system::error_code& error, unsigned size)
-			    { this->receive(size); } );
+			    [&] (const boost::system::error_code& error, std::size_t size)
+			    {
+				    if(error) {
+					    std::cerr << error.message() << std::endl;
+					    return;
+				    }
+				    this->receive(size);
+			    });
 }
 
-void receive(unsigned size) {
-	ipv4_header ip_header;
-	ICMP4Proto protocol;
+void network::Pinger::receive(std::size_t size) {
+	network::ipv4_header ip_header;
+	network::ICMP4Proto protocol;
 	unsigned data_offset;
-	HostInfo::ping_reply pr;
+	network::HostInfo::ping_reply pr;
+
+	std::cerr << "Received " << size << " bytes" << std::endl;
+
+	if (size == 0) {
+		startReceive();
+		return;
+	}
 
 	int ip_size = ip_header.ParsePacket(recvbuff);
 
 	std::vector<uint8_t> icmp_content(recvbuff.begin() + ip_size, recvbuff.end());
-	Type icmp_type = protocol.ParseReply(icmp_content, data_offset);
+	ICMP4Proto::Type icmp_type = protocol.ParseReply(icmp_content, data_offset);
 
 	if (icmp_type != ICMP4Proto::EchoReply) {
 		// not an echo reply packet,
@@ -176,6 +210,8 @@ void receive(unsigned size) {
 		pr.sequence = protocol.GetSequenceNumber();
 		pr.remote_ip = ip_header.source_address();
 		pr.remote_hostname = ""; // leave out the hostname for now
+
+		std::cout << chrono::duration_cast<chrono::milliseconds>(pr.latency).count() << std::endl;
 
 		h.PushReply(pr);
 	}
