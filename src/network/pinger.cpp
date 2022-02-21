@@ -11,7 +11,7 @@
 
 network::HostInfo::HostInfo(icmp::endpoint &host, std::string &hs)
 	: mean_latency(0), stdev_latency(0)
-	, destination(host), sequence(0), reply_received(false)
+	, destination(host), sequence(1), reply_received(false)
 	, host_string(hs) {
 
 }
@@ -25,7 +25,6 @@ std::vector<network::HostInfo::ping_reply> network::HostInfo::GetReplies() {
 void network::HostInfo::PushReply(ping_reply &reply) {
 	computeStats(reply);
 	replies.push_back(reply);
-	sequence = reply.sequence;
 	reply_received = true;
 }
 
@@ -113,7 +112,8 @@ void network::Pinger::startSend() {
 		uint16_t id = pack_identifier(identifier, i + 1);
 		std::vector<uint8_t> packet = protocol.CreateEchoPacket(requestBody,
 									id, h.sequence);
-		std::cerr << "sending " << packet.size() << " bytes to: "
+		std::cerr << "sending " << packet.size() << " bytes, Sequence "
+			  << h.sequence << ", to: "
 			  << h.GetDestination() << std::endl;
 		sock.send_to(boost::asio::buffer(packet), h.GetDestination());
 		// boost::asio::buffer(packet)
@@ -166,6 +166,12 @@ void network::Pinger::startReceive() {
 			    });
 }
 
+//
+// XXX TODO
+// Convert to std::chrono instead of
+// boost::chrono!!!
+// 
+
 void network::Pinger::receive(std::size_t size) {
 	network::ipv4_header ip_header;
 	network::ICMP4Proto protocol;
@@ -188,7 +194,7 @@ void network::Pinger::receive(std::size_t size) {
 		// not an echo reply packet,
 		// the ping_reply struct will be filled out appropriately
 		// in the timeout?
-		std::cerr << "Received not echo: " << std::endl;
+		std::cerr << "Received not echo: " << icmp_type << std::endl;
 	} else {
 		// this is an echo reply
 		//
@@ -201,7 +207,7 @@ void network::Pinger::receive(std::size_t size) {
 				// or something's wrong
 		}
 
-		HostInfo &h = remote_hosts[unpack_number(packet_id)];
+		HostInfo &h = remote_hosts[unpack_number(packet_id) - 1];
 
 		chrono::steady_clock::time_point now = chrono::steady_clock::now();
 		pr.latency = now - h.time_last_sent;
@@ -211,7 +217,11 @@ void network::Pinger::receive(std::size_t size) {
 		pr.remote_ip = ip_header.source_address();
 		pr.remote_hostname = ""; // leave out the hostname for now
 
-		std::cout << chrono::duration_cast<chrono::milliseconds>(pr.latency).count() << std::endl;
+		// testing
+		std::cout << "Sequence " << pr.sequence
+			  << ", Latency "
+			  << chrono::duration_cast<chrono::milliseconds>(pr.latency).count()
+			  << " milliseconds, ttl " << pr.time_to_live << std::endl;
 
 		h.PushReply(pr);
 	}

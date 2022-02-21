@@ -3,6 +3,13 @@
 #include <iostream>
 
 
+static uint16_t word_endian(uint16_t a) {
+	uint16_t upper = a & 0xFF00;
+	uint16_t lower = a & 0xFF;
+	return (lower << 8) | (upper >> 8);
+}
+
+
 network::ICMP4Proto::ICMP4Proto()
 	: state(false), type(0), code(0), checksum(0), n_data(0)
 	, id(0), seqn(0) {}
@@ -14,7 +21,7 @@ network::ICMP4Proto::~ICMP4Proto() {}
 void network::ICMP4Proto::parseTCC(std::vector<uint8_t> &buf) {
 	type = buf[0];
 	code = buf[1];
-	checksum = *(reinterpret_cast<uint16_t *>(&buf[2]));
+	checksum = word_endian(*(reinterpret_cast<uint16_t *>(&buf[2])));
 }
 
 
@@ -82,20 +89,16 @@ std::vector<uint8_t> network::ICMP4Proto::CreateEchoPacket(std::vector<uint8_t> 
 	packet[0] = Echo;	// type
 	packet[1] = 0;		// code
 	*(reinterpret_cast<uint16_t *>(&packet[2])) = 0; // checksum
-	*(reinterpret_cast<uint16_t *>(&packet[tcc_size])) = id;
-	*(reinterpret_cast<uint16_t *>(&packet[tcc_size + sizeof(uint16_t)])) = seqn;
+	*(reinterpret_cast<uint16_t *>(&packet[tcc_size])) = word_endian(id);
+	*(reinterpret_cast<uint16_t *>(&packet[tcc_size + sizeof(uint16_t)]))
+		= word_endian(seqn);
 
 	if (data.size() > 0) {
 		std::copy(data.begin(), data.end(), packet.begin() + header_size);
 	}
 
 	// compute checksum and fill it in
-	*(reinterpret_cast<uint16_t *>(&packet[2])) = computeChecksum(packet); // checksum
-
-	for (uint8_t v : packet) {
-		std::cerr << std::hex << (unsigned) v << ", ";
-	}
-	std::cerr << std::endl;
+	*(reinterpret_cast<uint16_t *>(&packet[2])) = word_endian(computeChecksum(packet));
 
 	return packet;
 }
@@ -143,8 +146,9 @@ uint16_t network::ICMP4Proto::GetSequenceNumber() const { return seqn; }
 uint8_t network::ICMP4Proto::parseEchoReply(std::vector<uint8_t> &packet) {
 	if (code != 0) { return -1; };
 
-	id = *(reinterpret_cast<uint16_t *>(&packet[tcc_size]));
-	seqn = *(reinterpret_cast<uint16_t *>(&packet[tcc_size + sizeof(uint16_t)]));
+	id = word_endian(*(reinterpret_cast<uint16_t *>(&packet[tcc_size])));
+	seqn = word_endian(*(reinterpret_cast<uint16_t *>
+			     ( &packet[tcc_size + sizeof(uint16_t)] )));
 	return n_data = tcc_size + 2*sizeof(uint16_t);
 }
 
@@ -226,16 +230,18 @@ uint16_t network::ICMP4Proto::computeChecksum(std::vector<uint8_t> &packet) {
 	int size = buf.size() / 2;
 	int left = buf.size() % 2;
 
-	int sum = 0;
+	unsigned int sum = 0;
 	unsigned n = 0;
 
 	array[1] = 0;		// set checksum field (specification)
 	for (n = 0; n < size; n++) {
-		sum += array[n];
+		sum += word_endian(array[n]);
 	}
 
 	if (left != 0) {
-		sum += *(reinterpret_cast<uint8_t *>(&array[n]));
+		std::cerr << "odd size in checksum" << std::endl;
+		uint16_t last_byte = *(reinterpret_cast<uint8_t *>(&array[n]));
+		sum += (last_byte << 8);
 	}
 	sum = (sum >> 16) + (sum & 0xffff);
 	sum += (sum >> 16);
