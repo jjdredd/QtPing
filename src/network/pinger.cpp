@@ -65,7 +65,15 @@ network::Pinger::Pinger(boost::asio::io_context &io)
 
 	// compute and set identifier
 	identifier = 0xA8;
-	requestBody = {0x43, 0x28};
+	// requestBody = {0x43, 0x28};
+	requestBody = {0x4f, 0x3b
+		, 0x15, 0x62 , 0x00, 0x00 , 0x00, 0x00 , 0x0c, 0x81 , 0x08
+		,0x00 , 0x00, 0x00 , 0x00, 0x00 , 0x10, 0x11 , 0x12, 0x13
+		, 0x14, 0x15 , 0x16, 0x17 , 0x18, 0x19 , 0x1a, 0x1b , 0x1c, 0x1d
+		, 0x1e, 0x1f , 0x20, 0x21 , 0x22, 0x23
+		, 0x24, 0x25 , 0x26, 0x27 , 0x28, 0x29 , 0x2a, 0x2b , 0x2c, 0x2d
+		, 0x2e, 0x2f , 0x30, 0x31 , 0x32, 0x33 , 0x34, 0x35 , 0x36, 0x37};
+
 
 	bufsz = 66000;
 	recvbuff.resize(bufsz, 0);
@@ -112,9 +120,25 @@ void network::Pinger::startSend() {
 		uint16_t id = pack_identifier(identifier, i + 1);
 		std::vector<uint8_t> packet = protocol.CreateEchoPacket(requestBody,
 									id, h.sequence);
-		std::cerr << "sending " << packet.size() << " bytes, Sequence "
+
+		// packet = {0x08, 0x00 , 0x92, 0xbe , 0x2d, 0x46 , 0x00, 0x0a , 0x4f, 0x3b
+		// 	, 0x15, 0x62 , 0x00, 0x00 , 0x00, 0x00 , 0x0c, 0x81 , 0x08
+		// 	,0x00 , 0x00, 0x00 , 0x00, 0x00 , 0x10, 0x11 , 0x12, 0x13
+		// 	, 0x14, 0x15 , 0x16, 0x17 , 0x18, 0x19 , 0x1a, 0x1b , 0x1c, 0x1d
+		// 	, 0x1e, 0x1f , 0x20, 0x21 , 0x22, 0x23
+		// 	, 0x24, 0x25 , 0x26, 0x27 , 0x28, 0x29 , 0x2a, 0x2b , 0x2c, 0x2d
+		// 	, 0x2e, 0x2f , 0x30, 0x31 , 0x32, 0x33 , 0x34, 0x35 , 0x36, 0x37};
+		
+		std::cerr << ">>>> sending " << packet.size() << " bytes, Sequence "
 			  << h.sequence << ", to: "
 			  << h.GetDestination() << std::endl;
+
+		// std::cout << '[';
+		// for (const uint8_t b : packet) {
+		// 	std::cout << "0x" << std::hex << (unsigned) b << std::dec << ", ";
+		// }
+		// std::cout << ']' << std::endl;
+
 		sock.send_to(boost::asio::buffer(packet), h.GetDestination());
 		// boost::asio::buffer(packet)
 		chrono::steady_clock::time_point now = chrono::steady_clock::now();
@@ -178,7 +202,7 @@ void network::Pinger::receive(std::size_t size) {
 	unsigned data_offset;
 	network::HostInfo::ping_reply pr;
 
-	std::cerr << "Received " << size << " bytes" << std::endl;
+	std::cerr << "<<<< Received " << size << " bytes" << std::endl;
 
 	if (size == 0) {
 		startReceive();
@@ -218,7 +242,7 @@ void network::Pinger::receive(std::size_t size) {
 		pr.remote_hostname = ""; // leave out the hostname for now
 
 		// testing
-		std::cout << "Sequence " << pr.sequence
+		std::cout << "\t Sequence " << pr.sequence
 			  << ", Latency "
 			  << chrono::duration_cast<chrono::milliseconds>(pr.latency).count()
 			  << " milliseconds, ttl " << pr.time_to_live << std::endl;
