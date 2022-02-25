@@ -33,7 +33,7 @@ void network::HostInfo::computeStats(ping_reply &reply) {
 	// also compute time and time difference
 }
 
-void network::HostInfo::TimeSent(chrono::steady_clock::time_point &t) {
+void network::HostInfo::TimeSent(std::chrono::steady_clock::time_point &t) {
 	time_last_sent = t;
 	reply_received = false;
 	sequence++;
@@ -65,15 +65,7 @@ network::Pinger::Pinger(boost::asio::io_context &io)
 
 	// compute and set identifier
 	identifier = 0xA8;
-	// requestBody = {0x43, 0x28};
-	requestBody = {0x4f, 0x3b
-		, 0x15, 0x62 , 0x00, 0x00 , 0x00, 0x00 , 0x0c, 0x81 , 0x08
-		,0x00 , 0x00, 0x00 , 0x00, 0x00 , 0x10, 0x11 , 0x12, 0x13
-		, 0x14, 0x15 , 0x16, 0x17 , 0x18, 0x19 , 0x1a, 0x1b , 0x1c, 0x1d
-		, 0x1e, 0x1f , 0x20, 0x21 , 0x22, 0x23
-		, 0x24, 0x25 , 0x26, 0x27 , 0x28, 0x29 , 0x2a, 0x2b , 0x2c, 0x2d
-		, 0x2e, 0x2f , 0x30, 0x31 , 0x32, 0x33 , 0x34, 0x35 , 0x36, 0x37};
-
+	requestBody.resize(s_dataBufferSize, 0xFF);
 
 	bufsz = 66000;
 	recvbuff.resize(bufsz, 0);
@@ -118,17 +110,13 @@ void network::Pinger::startSend() {
 
 		ICMP4Proto protocol;
 		uint16_t id = pack_identifier(identifier, i + 1);
+
+		requestBody.resize(s_dataBufferSize, 0xFF);
+		std::fill(requestBody.begin(), requestBody.end(), 0xFF);
+
 		std::vector<uint8_t> packet = protocol.CreateEchoPacket(requestBody,
 									id, h.sequence);
 
-		// packet = {0x08, 0x00 , 0x92, 0xbe , 0x2d, 0x46 , 0x00, 0x0a , 0x4f, 0x3b
-		// 	, 0x15, 0x62 , 0x00, 0x00 , 0x00, 0x00 , 0x0c, 0x81 , 0x08
-		// 	,0x00 , 0x00, 0x00 , 0x00, 0x00 , 0x10, 0x11 , 0x12, 0x13
-		// 	, 0x14, 0x15 , 0x16, 0x17 , 0x18, 0x19 , 0x1a, 0x1b , 0x1c, 0x1d
-		// 	, 0x1e, 0x1f , 0x20, 0x21 , 0x22, 0x23
-		// 	, 0x24, 0x25 , 0x26, 0x27 , 0x28, 0x29 , 0x2a, 0x2b , 0x2c, 0x2d
-		// 	, 0x2e, 0x2f , 0x30, 0x31 , 0x32, 0x33 , 0x34, 0x35 , 0x36, 0x37};
-		
 		std::cerr << ">>>> sending " << packet.size() << " bytes, Sequence "
 			  << h.sequence << ", to: "
 			  << h.GetDestination() << std::endl;
@@ -140,11 +128,10 @@ void network::Pinger::startSend() {
 		// std::cout << ']' << std::endl;
 
 		sock.send_to(boost::asio::buffer(packet), h.GetDestination());
-		// boost::asio::buffer(packet)
-		chrono::steady_clock::time_point now = chrono::steady_clock::now();
+		std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
 		h.TimeSent(now); // sets reply_received=false
 	}
-	stimer.expires_after(chrono::seconds(5));
+	stimer.expires_after(std::chrono::seconds(5));
 	stimer.async_wait( [&] (const boost::system::error_code& error)
 	{
 		if (error) {
@@ -168,7 +155,7 @@ void network::Pinger::timeOut() {
 		pr.sequence = ++h.sequence; // why "++" ?
 		h.PushReply(pr);
 	}
-	stimer.expires_after(chrono::seconds(1));
+	stimer.expires_after(std::chrono::seconds(1));
 	stimer.async_wait( [&] (const boost::system::error_code& error)
 	{
 		if (error) {
@@ -189,12 +176,6 @@ void network::Pinger::startReceive() {
 				    this->receive(size);
 			    });
 }
-
-//
-// XXX TODO
-// Convert to std::chrono instead of
-// boost::chrono!!!
-// 
 
 void network::Pinger::receive(std::size_t size) {
 	network::ipv4_header ip_header;
@@ -232,20 +213,25 @@ void network::Pinger::receive(std::size_t size) {
 		}
 
 		HostInfo &h = remote_hosts[unpack_number(packet_id) - 1];
+		icmp::endpoint remote_ep;
 
-		chrono::steady_clock::time_point now = chrono::steady_clock::now();
+		std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
 		pr.latency = now - h.time_last_sent;
 		pr.status = HostInfo::Reply;
 		pr.time_to_live = ip_header.time_to_live();
 		pr.sequence = protocol.GetSequenceNumber();
 		pr.remote_ip = ip_header.source_address();
-		pr.remote_hostname = ""; // leave out the hostname for now
 
+		// reverse resolve remote hostname (add error check?)
+		remote_ep.address(pr.remote_ip);
+		pr.remote_hostname = host_resolver.resolve(remote_ep).begin()->host_name();
 		// testing
 		std::cout << "\t Sequence " << pr.sequence
 			  << ", Latency "
-			  << chrono::duration_cast<chrono::milliseconds>(pr.latency).count()
-			  << " milliseconds, ttl " << pr.time_to_live << std::endl;
+			  << pr.latency.count()
+			  << " milliseconds, ttl " << pr.time_to_live
+			  << " from " << pr.remote_hostname
+			  << " (" << pr.remote_ip.to_string() << ')' << std::endl;
 
 		h.PushReply(pr);
 	}

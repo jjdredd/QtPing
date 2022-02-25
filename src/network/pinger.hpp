@@ -13,7 +13,6 @@
 
 using boost::asio::ip::icmp;
 using boost::asio::steady_timer;
-namespace chrono = boost::asio::chrono;
 
 class Pinger;
 
@@ -35,7 +34,7 @@ namespace network {
 
 		struct ping_reply {
 			reply_status status;
-			chrono::steady_clock::duration latency;
+			std::chrono::duration<double, std::milli> latency;
 			unsigned int time_to_live;
 			unsigned int sequence;
 			boost::asio::ip::address_v4 remote_ip;
@@ -48,7 +47,7 @@ namespace network {
 
 		std::vector<ping_reply> GetReplies(); // std::swap or std::move vectors
 		void PushReply(ping_reply &);
-		void TimeSent(chrono::steady_clock::time_point &);
+		void TimeSent(std::chrono::steady_clock::time_point &);
 		icmp::endpoint GetDestination() const ;
 
 	private:
@@ -58,7 +57,7 @@ namespace network {
 		double mean_latency, stdev_latency; // use stats class
 		icmp::endpoint destination;
 		unsigned sequence;
-		chrono::steady_clock::time_point time_last_sent;
+		std::chrono::steady_clock::time_point time_last_sent;
 		bool reply_received; // sent and received (false if not sent) or timeout
 		std::string host_string;
 
@@ -83,6 +82,10 @@ namespace network {
 
 	private:
 		icmp::endpoint resolveHostOrIP(std::string &);
+		// void fillDataBuffer(uint32_t, uint32_t, uint32_t, );
+		// we can add new id, sequence, number of host and timestamp
+		// to the data buffer to send with icmp echo
+		// (maybe withoout timestamp at first)
 		void startSend();
 		void startReceive();
 		void timeOut();
@@ -91,12 +94,14 @@ namespace network {
 		icmp::resolver host_resolver;
 		icmp::socket sock;
 		uint8_t identifier; // uint8_t??
-		steady_timer stimer;
+		boost::asio::steady_timer stimer;
 		// reply buffer?
 
 		std::vector<HostInfo> remote_hosts;
 		std::vector<uint8_t> recvbuff, requestBody;
 		unsigned bufsz;
+
+		static const unsigned s_dataBufferSize = 56;
 	};
 
 }
