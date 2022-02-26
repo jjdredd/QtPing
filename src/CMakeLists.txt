@@ -14,6 +14,6 @@ include_directories(AFTER "${CMake_SOURCE_DIR}/network")
 add_subdirectory(network)
 add_subdirectory(test)
 
-
-# target_link_libraries(YourExecutable ${Boost_LIBRARIES})
-# set_target_properties(pinger_test.elf PROPERTIES LINK_FLAGS "-lpthread")
+# add_executable(main.elf main.cpp)
+# set_target_properties(main.elf PROPERTIES LINK_FLAGS "-lpthread")
+# target_link_libraries(main.elf PUBLIC network PUBLIC ${Boost_LIBRARIES})

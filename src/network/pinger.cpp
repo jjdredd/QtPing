@@ -212,28 +212,38 @@ void network::Pinger::receive(std::size_t size) {
 				// or something's wrong
 		}
 
-		HostInfo &h = remote_hosts[unpack_number(packet_id) - 1];
-		icmp::endpoint remote_ep;
+		int host_index = unpack_number(packet_id) - 1;
 
-		std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-		pr.latency = now - h.time_last_sent;
-		pr.status = HostInfo::Reply;
-		pr.time_to_live = ip_header.time_to_live();
-		pr.sequence = protocol.GetSequenceNumber();
-		pr.remote_ip = ip_header.source_address();
+		if (host_index >= 0 && host_index < remote_hosts.size()) {
+		
+			HostInfo &h = remote_hosts[host_index];
+			icmp::endpoint remote_ep;
 
-		// reverse resolve remote hostname (add error check?)
-		remote_ep.address(pr.remote_ip);
-		pr.remote_hostname = host_resolver.resolve(remote_ep).begin()->host_name();
-		// testing
-		std::cout << "\t Sequence " << pr.sequence
-			  << ", Latency "
-			  << pr.latency.count()
-			  << " milliseconds, ttl " << pr.time_to_live
-			  << " from " << pr.remote_hostname
-			  << " (" << pr.remote_ip.to_string() << ')' << std::endl;
+			std::chrono::steady_clock::time_point now
+				= std::chrono::steady_clock::now();
 
-		h.PushReply(pr);
+			pr.latency = now - h.time_last_sent;
+			pr.status = HostInfo::Reply;
+			pr.time_to_live = ip_header.time_to_live();
+			pr.sequence = protocol.GetSequenceNumber();
+			pr.remote_ip = ip_header.source_address();
+
+			// reverse resolve remote hostname (add error check?)
+			remote_ep.address(pr.remote_ip);
+
+			pr.remote_hostname
+				= host_resolver.resolve(remote_ep).begin()->host_name();
+
+			// testing
+			std::cout << "\t Sequence " << pr.sequence
+				  << ", Latency "
+				  << pr.latency.count()
+				  << " milliseconds, ttl " << pr.time_to_live
+				  << " from " << pr.remote_hostname
+				  << " (" << pr.remote_ip.to_string() << ')' << std::endl;
+
+			h.PushReply(pr);
+		} 
 	}
 
 	startReceive();
