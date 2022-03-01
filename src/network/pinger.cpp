@@ -241,6 +241,7 @@ void network::Pinger::receive(std::size_t size) {
 				  << " milliseconds, ttl " << pr.time_to_live
 				  << " from " << pr.remote_hostname
 				  << " (" << pr.remote_ip.to_string() << ')' << std::endl;
+			// % loss
 
 			h.PushReply(pr);
 		} 

@@ -7,6 +7,8 @@ int main(int argc, char *argv[]) {
 	QApplication app(argc, argv);
 	IsingWindow iw(NX, NY, 1.14, 0.5);
 
+	QWidget
+
 	// iw.resize(NX, NY);
 	iw.setWindowTitle("2D Ising Monte-Carlo");
 	iw.show();
