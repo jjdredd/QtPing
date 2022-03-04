@@ -42,20 +42,6 @@ void network::HostInfo::TimeSent(std::chrono::steady_clock::time_point &t) {
 icmp::endpoint network::HostInfo::GetDestination() const { return destination; }
 
 
-static uint16_t pack_identifier(uint8_t id, unsigned n) {
-	uint16_t idex = id;
-	return (idex << 8) | (n & 0xFF);
-}
-
-static uint8_t unpack_number(uint16_t packet_id) {
-	return packet_id & 0xFF;
-}
-
-static uint8_t unpack_id(uint16_t packet_id) {
-	return (packet_id >> 8) & 0xFF;
-}
-
-
 //
 // Pinger
 //
@@ -64,7 +50,7 @@ network::Pinger::Pinger(boost::asio::io_context &io)
 	: host_resolver(io), sock(io, icmp::v4()), stimer(io) {
 
 	// compute and set identifier
-	identifier = 0xA8;
+	identifier = 0xA8A8;
 	requestBody.resize(s_dataBufferSize, 0xFF);
 
 	bufsz = 66000;
@@ -101,7 +87,26 @@ void network::Pinger::AddHost(std::string &host) {
 	std::cout << "adding host: " << hi.GetDestination() << std::endl;
 }
 
+//
+// XXX TODO
 // add an option to remove hosts too
+// 
+
+void network::Pinger::fillDataBuffer(uint32_t id, uint32_t seq, uint32_t nHost) {
+	if (requestBody.size() < 3 * sizeof(uint32_t)) return;
+	uint32_t *array = reinterpret_cast<uint32_t *> (requestBody.data());
+	array[0] = id;
+	array[1] = seq;
+	array[2] = nHost;
+}
+
+void network::Pinger::parseDataBuffer(uint32_t &id, uint32_t &seq, uint32_t &nHost) {
+	if (requestBody.size() < 3 * sizeof(uint32_t)) return;
+	uint32_t *array = reinterpret_cast<uint32_t *> (requestBody.data());
+	id = array[0];
+	seq = array[1];
+	nHost = array[2];
+}
 
 void network::Pinger::startSend() {
 	for (unsigned i = 0; i < remote_hosts.size(); i++) {
@@ -109,23 +114,17 @@ void network::Pinger::startSend() {
 		
 
 		ICMP4Proto protocol;
-		uint16_t id = pack_identifier(identifier, i + 1);
 
 		requestBody.resize(s_dataBufferSize, 0xFF);
-		std::fill(requestBody.begin(), requestBody.end(), 0xFF);
+		fillDataBuffer(identifier, h.sequence, i);
 
 		std::vector<uint8_t> packet = protocol.CreateEchoPacket(requestBody,
-									id, h.sequence);
+									identifier,
+									h.sequence);
 
 		std::cerr << ">>>> sending " << packet.size() << " bytes, Sequence "
 			  << h.sequence << ", to: "
 			  << h.GetDestination() << std::endl;
-
-		// std::cout << '[';
-		// for (const uint8_t b : packet) {
-		// 	std::cout << "0x" << std::hex << (unsigned) b << std::dec << ", ";
-		// }
-		// std::cout << ']' << std::endl;
 
 		sock.send_to(boost::asio::buffer(packet), h.GetDestination());
 		std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
@@ -204,17 +203,13 @@ void network::Pinger::receive(std::size_t size) {
 		// this is an echo reply
 		//
 		// check the packet checksum?? (at least icmp)
+		uint32_t host_index, data_id, data_seq;
 		uint16_t packet_id = protocol.GetIdentifier();
-		
-		if (unpack_id(packet_id) != identifier
-		    || unpack_number(packet_id) >= remote_hosts.size()) {
-				// not our packet!
-				// or something's wrong
-		}
+		parseDataBuffer(data_id, data_seq, host_index);
 
-		int host_index = unpack_number(packet_id) - 1;
-
-		if (host_index >= 0 && host_index < remote_hosts.size()) {
+		if (packet_id == identifier
+		    && host_index >= 0
+		    && host_index < remote_hosts.size()) {
 		
 			HostInfo &h = remote_hosts[host_index];
 			icmp::endpoint remote_ep;

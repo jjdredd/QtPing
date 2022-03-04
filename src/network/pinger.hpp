@@ -79,13 +79,23 @@ namespace network {
 		virtual ~Pinger();
 
 		void AddHost(std::string &);
+		double GetHostLatency();
+		double GetHostMinLatency();
+		double GetHostMaxLatency();
+		double GetHostStdDev();
+		double GetHostName();
+		std::vector<HostInfo::ping_reply> GetHostReplies();
 
 	private:
 		icmp::endpoint resolveHostOrIP(std::string &);
-		// void fillDataBuffer(uint32_t, uint32_t, uint32_t, );
+
+		// packet additional data
+		void fillDataBuffer(uint32_t, uint32_t, uint32_t);
 		// we can add new id, sequence, number of host and timestamp
 		// to the data buffer to send with icmp echo
 		// (maybe withoout timestamp at first)
+		void parseDataBuffer(uint32_t &, uint32_t &, uint32_t &);
+
 		void startSend();
 		void startReceive();
 		void timeOut();
@@ -93,9 +103,8 @@ namespace network {
 
 		icmp::resolver host_resolver;
 		icmp::socket sock;
-		uint8_t identifier; // uint8_t??
+		uint16_t identifier;
 		boost::asio::steady_timer stimer;
-		// reply buffer?
 
 		std::vector<HostInfo> remote_hosts;
 		std::vector<uint8_t> recvbuff, requestBody;
