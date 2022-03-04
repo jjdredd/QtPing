@@ -16,7 +16,7 @@ public:
 
 private:
 
-// public slots:
+public slots:
 	
 };
 

@@ -79,12 +79,14 @@ namespace network {
 		virtual ~Pinger();
 
 		void AddHost(std::string &);
-		double GetHostLatency();
-		double GetHostMinLatency();
-		double GetHostMaxLatency();
-		double GetHostStdDev();
-		double GetHostName();
-		std::vector<HostInfo::ping_reply> GetHostReplies();
+		bool DeleteHost(unsigned);
+		// double GetHostLatency();
+		// double GetHostMinLatency();
+		// double GetHostMaxLatency();
+		// double GetHostStdDev();
+		// std::string GetHostName();
+		// std::string GetHostAddressString();
+		std::vector<HostInfo::ping_reply> GetHostReplies(unsigned);
 
 	private:
 		icmp::endpoint resolveHostOrIP(std::string &);

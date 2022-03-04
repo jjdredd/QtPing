@@ -87,10 +87,16 @@ void network::Pinger::AddHost(std::string &host) {
 	std::cout << "adding host: " << hi.GetDestination() << std::endl;
 }
 
-//
-// XXX TODO
-// add an option to remove hosts too
-// 
+
+bool network::Pinger::DeleteHost(unsigned n) {
+	if (n > remote_hosts.size() - 1) return false;
+	remote_hosts.erase(remote_hosts.begin() + n);
+	return true;
+}
+
+std::vector<network::HostInfo::ping_reply> network::Pinger::GetHostReplies(unsigned n) {
+	return std::move(remote_hosts[n].replies);
+}
 
 void network::Pinger::fillDataBuffer(uint32_t id, uint32_t seq, uint32_t nHost) {
 	if (requestBody.size() < 3 * sizeof(uint32_t)) return;
