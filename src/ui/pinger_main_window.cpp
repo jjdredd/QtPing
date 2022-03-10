@@ -4,8 +4,48 @@
 
 #include "pinger_main_window.hpp"
 
+//
+// class PingerThread
+// 
+
+PingerThread::PingerThread()
+	: m_query_timer(m_ui_ioc), m_counter(0) {
+}
+
+void PingerThread::StopThread() {
+	m_ui_ioc.stop();
+	exit();
+}
+
+PingerThread::~PingerThread() {
+	m_ui_ioc.stop();
+	exit();
+}
+
+void PingerThread::run() {
+
+	m_query_timer.expires_after(std::chrono::seconds(1));
+	m_query_timer.async_wait( [&] (const boost::system::error_code& error)
+	{
+		this->m_counter++;
+		this->text_TTL = QString::number(this->m_counter);
+		std::cout << "query_timer " << this->text_TTL.toStdString() << std::endl;
+		emit setSequenceN(this->text_TTL);
+		m_query_timer.expires_after(std::chrono::seconds(1));
+		run();
+	});
+
+	m_ui_ioc.run();
+
+}
+
+
+//
+// class PingerMainWindow
+// 
+
 PingerMainWindow::PingerMainWindow(QWidget *parent)
-	: QMainWindow(parent), ui_ioc(), query_timer(ui_ioc) {
+	: QMainWindow(parent) {
 
  	setupUi(this);
 	
@@ -18,19 +58,21 @@ PingerMainWindow::PingerMainWindow(QWidget *parent)
 	e_lost->setReadOnly(true);
 	e_TTL->setReadOnly(true);
 
-	connect(this, SIGNAL(setSequenceN(const QString &)),
+	connect(&m_pt, SIGNAL(setSequenceN(const QString &)),
 		e_TTL, SLOT(setText(const QString &)));
 
-	counter = 1;
+	connect(b_AddHost, SIGNAL(clicked()), this, SLOT(printTextTest()));
 
-	query_timer.expires_after(std::chrono::seconds(1));
-	query_timer.async_wait( [&] (const boost::system::error_code& error)
-	{
-		this->counter++;
-		std::cout << "query_timer" << std::endl;
-		emit setSequenceN(QString(this->counter));
-	});
+	m_pt.start();
 
 }
 
-PingerMainWindow::~PingerMainWindow() {}	// delete all the widgets?
+PingerMainWindow::~PingerMainWindow() {
+	// free widgets?
+}
+
+
+void PingerMainWindow::printTextTest() {
+	std::cout << "printTextTest: " << std::endl;
+}
+

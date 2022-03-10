@@ -63,6 +63,7 @@ namespace network {
 
 		// identifier will be the index in the hostinfo array in Pinger class
 
+		// better have a list?
 		std::vector<ping_reply> replies;
 		// num replies (?)
 	};
