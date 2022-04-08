@@ -23,6 +23,5 @@ public:
 
 private:
 	unsigned m_hostIndex;
-	std::list<reply_status> m_replies;
 
 };
