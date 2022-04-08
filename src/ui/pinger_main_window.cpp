@@ -47,6 +47,8 @@ void PingerThread::run() {
 PingerMainWindow::PingerMainWindow(QWidget *parent)
 	: QMainWindow(parent) {
 
+	m_update_delay = 5000;
+
  	setupUi(this);
 	
 	e_HostName->setReadOnly(true);
@@ -58,12 +60,46 @@ PingerMainWindow::PingerMainWindow(QWidget *parent)
 	e_lost->setReadOnly(true);
 	e_TTL->setReadOnly(true);
 
-	connect(&m_pt, SIGNAL(setSequenceN(const QString &)),
+	// timer signals
+	connect(&m_timer, SIGNAL(QTimer::timeout), this, SLOT(UpdateDisplay()));
+
+	// button signals
+	connect(b_AddHost, SIGNAL(clicked()), this, SLOT(AddHost()));
+	connect(b_DeleteHost, SIGNAL(clicked()), this, SLOT(DeleteHost()));
+
+	// list widget signals
+	connect(HostListWidget, SIGNAL(itemClicked()),
+		this, SLOT(ItemSelected(QListWidgetItem *)));
+
+	// line edit slots
+	connect(this, SIGNAL(UpdateHostName(const QString &)),
+		e_HostName, SLOT(setText(const QString &)));
+	connect(this, SIGNAL(UpdateAddress(const QString &)),
+		e_Address, SLOT(setText(const QString &)));
+	connect(this, SIGNAL(UpdateAverage(const QString &)),
+		e_Average, SLOT(setText(const QString &)));
+	connect(this, SIGNAL(UpdateStdDev(const QString &)),
+		e_StdDev, SLOT(setText(const QString &)));
+	connect(this, SIGNAL(UpdateMin(const QString &)),
+		e_Min, SLOT(setText(const QString &)));
+	connect(this, SIGNAL(UpdateMax(const QString &)),
+		e_Max, SLOT(setText(const QString &)));
+	connect(this, SIGNAL(UpdateLost(const QString &)),
+		e_lost, SLOT(setText(const QString &)));
+	connect(this, SIGNAL(UpdateTTL(const QString &)),
 		e_TTL, SLOT(setText(const QString &)));
 
-	connect(b_AddHost, SIGNAL(clicked()), this, SLOT(printTextTest()));
+	connect(this, SIGNAL(ClearDisplayStats()), e_HostName, SLOT(clear()));
+	connect(this, SIGNAL(ClearDisplayStats()), e_Address, SLOT(clear()));
+	connect(this, SIGNAL(ClearDisplayStats()), e_Average, SLOT(clear()));
+	connect(this, SIGNAL(ClearDisplayStats()), e_StdDev, SLOT(clear()));
+	connect(this, SIGNAL(ClearDisplayStats()), e_Min, SLOT(clear()));
+	connect(this, SIGNAL(ClearDisplayStats()), e_Max, SLOT(clear()));
+	connect(this, SIGNAL(ClearDisplayStats()), e_lost, SLOT(clear()));
+	connect(this, SIGNAL(ClearDisplayStats()), e_TTL, SLOT(clear()));
 
-	m_pt.start();
+	
+	m_timer.start(m_update_delay);
 
 }
 
@@ -72,7 +108,7 @@ PingerMainWindow::~PingerMainWindow() {
 }
 
 
-void PingerMainWindow::printTextTest() {
-	std::cout << "printTextTest: " << std::endl;
+void PingerMainWindow::AddHost() {
+	std::cout << "AddHost test stub: " << std::endl;
 }
 

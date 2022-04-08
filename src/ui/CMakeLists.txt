@@ -1,6 +1,6 @@
 set(UI_MAIN_SRC pinger_main_window.cpp)
 
-qt5_wrap_cpp(UI_MOC_SRC pinger_main_window.hpp QtPingerCore.hpp)
+qt5_wrap_cpp(UI_MOC_SRC pinger_main_window.hpp)
 qt5_wrap_ui(UI_UIC_H designer/QtPingUI_1.ui)
 add_library(ui OBJECT ${UI_MAIN_SRC} ${UI_MOC_SRC} ${UI_UIC_H})
 
