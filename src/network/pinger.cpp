@@ -9,9 +9,8 @@
 // Pinger
 //
 
-network::Pinger::Pinger(std::shared_ptr<HostContainer> &hc, boost::asio::io_context &io)
-	: host_resolver(io), sock(io, icmp::v4()), stimer(io)
-	, m_hostContainer(hc) {
+network::Pinger::Pinger(boost::asio::io_context &io)
+	: host_resolver(io), sock(io, icmp::v4()), stimer(io) {
 
 	// compute and set identifier
 	identifier = 0xA8A8;
@@ -26,6 +25,41 @@ network::Pinger::Pinger(std::shared_ptr<HostContainer> &hc, boost::asio::io_cont
 
 network::Pinger::~Pinger() {}
 
+icmp::endpoint network::Pinger::resolveHostOrIP(std::string &host) {
+
+	icmp::endpoint dest;
+
+	boost::system::error_code ec;
+	dest = *host_resolver.resolve(icmp::v4(), host, "").begin();
+	// boost::asio::ip::address ip = boost::asio::ip::make_address(host, ec);
+	// if (ec.failed()) {
+	// 	dest = *host_resolver.resolve(icmp::v4(), host, "").begin();
+	// 	std::cout << "resolving host name" << std::endl;
+	// } else {
+	// 	std::cout << "using an IP addres" << std::endl;
+	// 	dest = boost::asio::ip::icmp::endpoint(ip, 10);
+	// }
+
+	return dest;
+}
+
+void network::Pinger::AddHost(std::string &host) {
+	icmp::endpoint dest = resolveHostOrIP(host);
+	HostInfo hi(dest, host);
+	remote_hosts.push_back(hi);
+	std::cout << "adding host: " << hi.GetDestination() << std::endl;
+}
+
+
+bool network::Pinger::DeleteHost(unsigned n) {
+	if (n > remote_hosts.size() - 1) return false;
+	remote_hosts.erase(remote_hosts.begin() + n);
+	return true;
+}
+
+std::vector<network::HostInfo::ping_reply> network::Pinger::GetHostReplies(unsigned n) {
+	return std::move(remote_hosts[n].replies);
+}
 
 void network::Pinger::fillDataBuffer(uint32_t id, uint32_t seq, uint32_t nHost) {
 	if (requestBody.size() < 3 * sizeof(uint32_t)) return;
@@ -46,6 +80,7 @@ void network::Pinger::parseDataBuffer(uint32_t &id, uint32_t &seq, uint32_t &nHo
 void network::Pinger::startSend() {
 	for (unsigned i = 0; i < remote_hosts.size(); i++) {
 		HostInfo &h = remote_hosts[i];
+		
 
 		ICMP4Proto protocol;
 
@@ -64,7 +99,6 @@ void network::Pinger::startSend() {
 		std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
 		h.TimeSent(now); // sets reply_received=false
 	}
-
 	stimer.expires_after(std::chrono::seconds(5));
 	stimer.async_wait( [&] (const boost::system::error_code& error)
 	{
