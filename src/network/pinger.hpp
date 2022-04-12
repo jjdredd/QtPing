@@ -7,6 +7,7 @@
 #include <vector>
 #include <chrono>
 #include <string>
+#include <memory>
 
 #include <boost/system/error_code.hpp>
 
@@ -27,21 +28,10 @@ namespace network {
 	class Pinger {
 
 	public:
-		Pinger(boost::asio::io_context &);
+		Pinger(std::shared_ptr<HostContainer> &, boost::asio::io_context &);
 		virtual ~Pinger();
 
-		void AddHost(std::string &);
-		bool DeleteHost(unsigned);
-		// double GetHostLatency();
-		// double GetHostMinLatency();
-		// double GetHostMaxLatency();
-		// double GetHostStdDev();
-		// std::string GetHostName();
-		// std::string GetHostAddressString();
-		std::vector<HostInfo::ping_reply> GetHostReplies(unsigned);
-
 	private:
-		icmp::endpoint resolveHostOrIP(std::string &);
 
 		// packet additional data
 		void fillDataBuffer(uint32_t, uint32_t, uint32_t);
@@ -60,7 +50,7 @@ namespace network {
 		uint16_t identifier;
 		boost::asio::steady_timer stimer;
 
-		std::vector<HostInfo> remote_hosts;
+		std::shared_ptr<HostContainer> m_hostContainer;
 		std::vector<uint8_t> recvbuff, requestBody;
 		unsigned bufsz;
 

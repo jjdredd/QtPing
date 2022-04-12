@@ -10,6 +10,7 @@
 #include <chrono>
 #include <string>
 #include <mutex>
+#include <unordered_map>
 
 #include <boost/system/error_code.hpp>
 
@@ -54,9 +55,6 @@ namespace network {
 
 	private:
 
-		void computeStats(ping_reply &);
-
-		double mean_latency, stdev_latency; // use stats class
 		icmp::endpoint destination;
 		unsigned sequence;
 		std::chrono::steady_clock::time_point time_last_sent;
@@ -80,11 +78,23 @@ namespace network {
 		HostContainer();
 		virtual ~HostContainer();
 
+		unsigned AddHost(std::string &);
+		bool DeleteHost(unsigned);
+
+		void PushReply(unsigned, ping_reply &);
+		void TimeSent(unsigned, std::chrono::steady_clock::time_point &);
+		icmp::endpoint GetDestination(unsigned) const;
+		unsigned NumReplies(unsigned) const;
+		std::vector<HostInfo::ping_reply> GetReplies(unsigned);
+		unsigned GetSeqN(unsigned) const;
+
 	private:
+
+		unsigned newKey();
+
 		std::mutex m_mutex;
 		std::unordered_map<unsigned, HostInfo> m_hosts;
-		unsigned keys;
-
+		unsigned m_key;
 	};
 
 }
