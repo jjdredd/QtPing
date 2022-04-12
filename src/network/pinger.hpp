@@ -5,6 +5,8 @@
 #include <vector>
 #include <chrono>
 #include <string>
+#include <mutex>
+#include <unordered_map>
 
 #include <boost/system/error_code.hpp>
 
@@ -54,7 +56,6 @@ namespace network {
 
 		void computeStats(ping_reply &);
 
-		double mean_latency, stdev_latency; // use stats class
 		icmp::endpoint destination;
 		unsigned sequence;
 		std::chrono::steady_clock::time_point time_last_sent;
@@ -76,21 +77,11 @@ namespace network {
 	class Pinger {
 
 	public:
-		Pinger(boost::asio::io_context &);
+		Pinger(std::unordered_map<unsigned, Hostinfo> *, std::mutex *,
+		       std::unoboost::asio::io_context &);
 		virtual ~Pinger();
 
-		void AddHost(std::string &);
-		bool DeleteHost(unsigned);
-		// double GetHostLatency();
-		// double GetHostMinLatency();
-		// double GetHostMaxLatency();
-		// double GetHostStdDev();
-		// std::string GetHostName();
-		// std::string GetHostAddressString();
-		std::vector<HostInfo::ping_reply> GetHostReplies(unsigned);
-
 	private:
-		icmp::endpoint resolveHostOrIP(std::string &);
 
 		// packet additional data
 		void fillDataBuffer(uint32_t, uint32_t, uint32_t);
@@ -109,11 +100,15 @@ namespace network {
 		uint16_t identifier;
 		boost::asio::steady_timer stimer;
 
-		std::vector<HostInfo> remote_hosts;
 		std::vector<uint8_t> recvbuff, requestBody;
 		unsigned bufsz;
+
+		std::unordered_map<unsigned, Hostinfo> *m_pHosts;
+		std::mutex *m_pMutex;
 
 		static const unsigned s_dataBufferSize = 56;
 	};
 
+	void AddHost(std::unordered_map<unsigned, HostInfo> *,
+		     std::string &, unsigned key);
 }

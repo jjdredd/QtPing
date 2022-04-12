@@ -5,53 +5,58 @@
 #include "pinger.hpp"
 #include "icmp4.hpp"
 
+using namespace network;
+
 //
 // HostInfo
 // 
 
-network::HostInfo::HostInfo(icmp::endpoint &host, std::string &hs)
+HostInfo::HostInfo(icmp::endpoint &host, std::string &hs)
 	: mean_latency(0), stdev_latency(0)
 	, destination(host), sequence(1), reply_received(false)
 	, host_string(hs) {
 
 }
 
-network::HostInfo::~HostInfo() {}
+HostInfo::~HostInfo() {}
 
-std::vector<network::HostInfo::ping_reply> network::HostInfo::GetReplies() {
+std::vector<HostInfo::ping_reply> HostInfo::GetReplies() {
 	return std::move(replies);
 }
 
-void network::HostInfo::PushReply(ping_reply &reply) {
+void HostInfo::PushReply(ping_reply &reply) {
 	computeStats(reply);
 	replies.push_back(reply);
 	reply_received = true;
 }
 
-void network::HostInfo::computeStats(ping_reply &reply) {
+void HostInfo::computeStats(ping_reply &reply) {
 	// compute avg latency and stdev
 	// also compute time and time difference
 }
 
-void network::HostInfo::TimeSent(std::chrono::steady_clock::time_point &t) {
+void HostInfo::TimeSent(std::chrono::steady_clock::time_point &t) {
 	time_last_sent = t;
 	reply_received = false;
 	sequence++;
 }
 
-icmp::endpoint network::HostInfo::GetDestination() const { return destination; }
+icmp::endpoint HostInfo::GetDestination() const { return destination; }
 
 
 //
 // Pinger
 //
 
-network::Pinger::Pinger(boost::asio::io_context &io)
-	: host_resolver(io), sock(io, icmp::v4()), stimer(io) {
+Pinger::Pinger(std::unordered_map<unsigned, Hostinfo> *him, std::mutex *mtx,
+			boost::asio::io_context &io)
+	: host_resolver(io), sock(io, icmp::v4()), stimer(io)
+	, m_pHosts(him), m_pMutex(mtx) {
 
 	// compute and set identifier
 	identifier = 0xA8A8;
 	requestBody.resize(s_dataBufferSize, 0xFF);
+	key = 1;
 
 	bufsz = 66000;
 	recvbuff.resize(bufsz, 0);
@@ -60,45 +65,9 @@ network::Pinger::Pinger(boost::asio::io_context &io)
 	startReceive();
 }
 
-network::Pinger::~Pinger() {}
+Pinger::~Pinger() {}
 
-icmp::endpoint network::Pinger::resolveHostOrIP(std::string &host) {
-
-	icmp::endpoint dest;
-
-	boost::system::error_code ec;
-	dest = *host_resolver.resolve(icmp::v4(), host, "").begin();
-	// boost::asio::ip::address ip = boost::asio::ip::make_address(host, ec);
-	// if (ec.failed()) {
-	// 	dest = *host_resolver.resolve(icmp::v4(), host, "").begin();
-	// 	std::cout << "resolving host name" << std::endl;
-	// } else {
-	// 	std::cout << "using an IP addres" << std::endl;
-	// 	dest = boost::asio::ip::icmp::endpoint(ip, 10);
-	// }
-
-	return dest;
-}
-
-void network::Pinger::AddHost(std::string &host) {
-	icmp::endpoint dest = resolveHostOrIP(host);
-	HostInfo hi(dest, host);
-	remote_hosts.push_back(hi);
-	std::cout << "adding host: " << hi.GetDestination() << std::endl;
-}
-
-
-bool network::Pinger::DeleteHost(unsigned n) {
-	if (n > remote_hosts.size() - 1) return false;
-	remote_hosts.erase(remote_hosts.begin() + n);
-	return true;
-}
-
-std::vector<network::HostInfo::ping_reply> network::Pinger::GetHostReplies(unsigned n) {
-	return std::move(remote_hosts[n].replies);
-}
-
-void network::Pinger::fillDataBuffer(uint32_t id, uint32_t seq, uint32_t nHost) {
+void Pinger::fillDataBuffer(uint32_t id, uint32_t seq, uint32_t nHost) {
 	if (requestBody.size() < 3 * sizeof(uint32_t)) return;
 	uint32_t *array = reinterpret_cast<uint32_t *> (requestBody.data());
 	array[0] = id;
@@ -106,7 +75,7 @@ void network::Pinger::fillDataBuffer(uint32_t id, uint32_t seq, uint32_t nHost) 
 	array[2] = nHost;
 }
 
-void network::Pinger::parseDataBuffer(uint32_t &id, uint32_t &seq, uint32_t &nHost) {
+void Pinger::parseDataBuffer(uint32_t &id, uint32_t &seq, uint32_t &nHost) {
 	if (requestBody.size() < 3 * sizeof(uint32_t)) return;
 	uint32_t *array = reinterpret_cast<uint32_t *> (requestBody.data());
 	id = array[0];
@@ -114,15 +83,16 @@ void network::Pinger::parseDataBuffer(uint32_t &id, uint32_t &seq, uint32_t &nHo
 	nHost = array[2];
 }
 
-void network::Pinger::startSend() {
-	for (unsigned i = 0; i < remote_hosts.size(); i++) {
-		HostInfo &h = remote_hosts[i];
-		
+void Pinger::startSend() {
+
+	m_pMutex->lock();
+	for (auto it = m_pHosts->begin(); it != m_pHosts->end(); it++) {
+		HostInfo &h = it->second;
+		unsigned key = it->first;
 
 		ICMP4Proto protocol;
-
 		requestBody.resize(s_dataBufferSize, 0xFF);
-		fillDataBuffer(identifier, h.sequence, i);
+		fillDataBuffer(identifier, h.sequence, key);
 
 		std::vector<uint8_t> packet = protocol.CreateEchoPacket(requestBody,
 									identifier,
@@ -136,6 +106,8 @@ void network::Pinger::startSend() {
 		std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
 		h.TimeSent(now); // sets reply_received=false
 	}
+	m_pMutex->unlock();
+
 	stimer.expires_after(std::chrono::seconds(5));
 	stimer.async_wait( [&] (const boost::system::error_code& error)
 	{
@@ -146,9 +118,12 @@ void network::Pinger::startSend() {
 	});
 }
 
-void network::Pinger::timeOut() {
-	for (unsigned i = 0; i < remote_hosts.size(); i++) {
-		HostInfo h = remote_hosts[i];
+void Pinger::timeOut() {
+	m_pMutex->lock();
+	for (auto it = m_pHosts->begin(); it != m_pHosts->end(); it++) {
+		HostInfo &h = it->second;
+		unsigned key = it->first;
+
 		HostInfo::ping_reply pr;
 		// if haven't received, push reply structure set to timed out
 
@@ -160,6 +135,8 @@ void network::Pinger::timeOut() {
 		pr.sequence = ++h.sequence; // why "++" ?
 		h.PushReply(pr);
 	}
+	m_pMutex->unlock();
+
 	stimer.expires_after(std::chrono::seconds(1));
 	stimer.async_wait( [&] (const boost::system::error_code& error)
 	{
@@ -170,7 +147,7 @@ void network::Pinger::timeOut() {
 	});
 }
 
-void network::Pinger::startReceive() {
+void Pinger::startReceive() {
 	sock.async_receive( boost::asio::buffer(recvbuff),
 			    [&] (const boost::system::error_code& error, std::size_t size)
 			    {
@@ -182,11 +159,11 @@ void network::Pinger::startReceive() {
 			    });
 }
 
-void network::Pinger::receive(std::size_t size) {
-	network::ipv4_header ip_header;
-	network::ICMP4Proto protocol;
+void Pinger::receive(std::size_t size) {
+	ipv4_header ip_header;
+	ICMP4Proto protocol;
 	unsigned data_offset;
-	network::HostInfo::ping_reply pr;
+	HostInfo::ping_reply pr;
 
 	std::cerr << "<<<< Received " << size << " bytes" << std::endl;
 
@@ -209,15 +186,16 @@ void network::Pinger::receive(std::size_t size) {
 		// this is an echo reply
 		//
 		// check the packet checksum?? (at least icmp)
-		uint32_t host_index, data_id, data_seq;
+		uint32_t host_key, data_id, data_seq;
 		uint16_t packet_id = protocol.GetIdentifier();
-		parseDataBuffer(data_id, data_seq, host_index);
+		parseDataBuffer(data_id, data_seq, host_key);
 
+		m_pMutex->lock();
 		if (packet_id == identifier
 		    && host_index >= 0
-		    && host_index < remote_hosts.size()) {
+		    && m_pHosts->contains(host_key) ) {
 		
-			HostInfo &h = remote_hosts[host_index];
+			HostInfo &h = m_pHosts->at(host_key);
 			icmp::endpoint remote_ep;
 
 			std::chrono::steady_clock::time_point now
@@ -245,8 +223,20 @@ void network::Pinger::receive(std::size_t size) {
 			// % loss
 
 			h.PushReply(pr);
-		} 
+		}
+		m_pMutex->unlock();
 	}
 
 	startReceive();
+}
+
+
+unsigned AddHost(std::unordered_map<unsigned, HostInfo> *him,
+		 std::string &host,  unsigned key) {
+
+	icmp::endpoint dest =  *host_resolver.resolve(icmp::v4(), host, "").begin();
+	HostInfo hi(dest, host);
+
+	him->insert_or_assign(key, hi);
+	std::cout << "adding host: " << hi.GetDestination() << std::endl;
 }
