@@ -21,7 +21,6 @@ int main(int argc, char *argv[]) {
 			  << "Adding host (" << remote_host_1 << ")"
 			  << std::endl;
 
-		const std::lock_guard<std::mutex> lock(mtx);
 		p.AddHost(&him, remote_host_1, 1);
 	}
 
@@ -32,7 +31,6 @@ int main(int argc, char *argv[]) {
 			  << "Adding host (" << remote_host_2 << ")"
 			  << std::endl;
 
-		const std::lock_guard<std::mutex> lock(mtx);
 		p.AddHost(&him, remote_host_2, 2);
 	}
 

@@ -70,7 +70,9 @@ void network::Pinger::AddHost(std::unordered_map<unsigned, HostInfo> *him,
 	icmp::endpoint dest =  *host_resolver.resolve(icmp::v4(), host, "").begin();
 	HostInfo hi(dest, host);
 
+	m_pMutex->lock();
 	him->insert_or_assign(key, hi);
+	m_pMutex->unlock();
 	std::cout << "adding host: " << hi.GetDestination() << std::endl;
 }
 
