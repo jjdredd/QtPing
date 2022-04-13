@@ -77,9 +77,12 @@ namespace network {
 	class Pinger {
 
 	public:
-		Pinger(std::unordered_map<unsigned, Hostinfo> *, std::mutex *,
-		       std::unoboost::asio::io_context &);
+		Pinger(std::unordered_map<unsigned, HostInfo> *, std::mutex *,
+		       boost::asio::io_context &);
 		virtual ~Pinger();
+
+		void AddHost(std::unordered_map<unsigned, HostInfo> *,
+			     std::string &, unsigned key);
 
 	private:
 
@@ -103,12 +106,10 @@ namespace network {
 		std::vector<uint8_t> recvbuff, requestBody;
 		unsigned bufsz;
 
-		std::unordered_map<unsigned, Hostinfo> *m_pHosts;
+		std::unordered_map<unsigned, HostInfo> *m_pHosts;
 		std::mutex *m_pMutex;
 
 		static const unsigned s_dataBufferSize = 56;
 	};
 
-	void AddHost(std::unordered_map<unsigned, HostInfo> *,
-		     std::string &, unsigned key);
 }

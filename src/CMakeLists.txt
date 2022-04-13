@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.18)
 
 project(QtPing VERSION 0.1 LANGUAGES CXX)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_AUTOMOC OFF)
@@ -17,7 +17,7 @@ find_package(Qt5 COMPONENTS Widgets Core REQUIRED)
 
 
 # set CFLAGS etc
-set(WFLAGS "-W -Wall -Wextra -g -std=c++17")
+set(WFLAGS "-W -Wall -Wextra -g -std=c++20")
 set(CMAKE_CXX_FLAGS  "${WFLAGS}")
 
 include_directories(AFTER ${Boost_INCLUDE_DIR})
