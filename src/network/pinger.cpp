@@ -13,7 +13,7 @@ using namespace network;
 
 network::HostInfo::HostInfo(icmp::endpoint &host, std::string &hs)
 	: destination(host), sequence(1), reply_received(false)
-	, host_string(hs) {}
+	, host_string(hs), replies(100) {}
 
 network::HostInfo::~HostInfo() {}
 
@@ -22,14 +22,8 @@ std::vector<network::HostInfo::ping_reply> network::HostInfo::GetReplies() {
 }
 
 void network::HostInfo::PushReply(ping_reply &reply) {
-	computeStats(reply);
 	replies.push_back(reply);
 	reply_received = true;
-}
-
-void network::HostInfo::computeStats(ping_reply &reply) {
-	// compute avg latency and stdev
-	// also compute time and time difference
 }
 
 void network::HostInfo::TimeSent(std::chrono::steady_clock::time_point &t) {

@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <unordered_map>
 
 #include "pinger.hpp"
 
@@ -34,6 +35,8 @@ public:
 	// add more update functions for each field
 	// to connect to each ui element
 
+	void SelectState(unsigned &); // select current state using a key
+
 signals:
 
 public slots:
@@ -47,7 +50,8 @@ private:
 	void updatePingData();
 	void handleOverflow();
 
-	std::vector<network::HostInfo> m_hostInfo;
+	std::unordered_map<unsigned, HostInfo> m_hosts;
+	std::mutex m_mutex;
 	unsigned m_state;
 	boost::asio::io_context m_ioc;
 	network::Pinger m_pinger;

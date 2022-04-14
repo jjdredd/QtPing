@@ -9,6 +9,7 @@
 #include <unordered_map>
 
 #include <boost/system/error_code.hpp>
+#include <boost/circular_buffer.hpp>
 
 #include "ipv4.hpp"
 
@@ -54,8 +55,6 @@ namespace network {
 
 	private:
 
-		void computeStats(ping_reply &);
-
 		icmp::endpoint destination;
 		unsigned sequence;
 		std::chrono::steady_clock::time_point time_last_sent;
@@ -65,7 +64,7 @@ namespace network {
 		// identifier will be the index in the hostinfo array in Pinger class
 
 		// better have a list?
-		std::vector<ping_reply> replies;
+		boost::circular_buffer<ping_reply> replies;
 		// num replies (?)
 	};
 
