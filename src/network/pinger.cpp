@@ -13,7 +13,7 @@ using namespace network;
 
 network::HostInfo::HostInfo(icmp::endpoint &host, std::string &hs)
 	: destination(host), sequence(1), reply_received(false)
-	, host_string(hs), replies(100) {}
+	, host_string(hs), replies(100), m_nAnswered(0), m_nLost(0) {}
 
 network::HostInfo::~HostInfo() {}
 
@@ -30,6 +30,9 @@ network::HostInfo::ping_reply network::HostInfo::GetAllReplies() const {
 }
 
 void network::HostInfo::PushReply(ping_reply &reply) {
+	if (reply.status == network::HostInfo::Reply) { m_nAnswered++; }
+	else { m_nLost++; }
+
 	replies.push_back(reply);
 	reply_received = true;
 }

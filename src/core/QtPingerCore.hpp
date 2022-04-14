@@ -1,12 +1,12 @@
 #pragma once
 
-#include <QMutex>
 #include <QString>
 
 #include <iostream>
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <mutex>
 
 #include "pinger.hpp"
 
@@ -35,20 +35,21 @@ public:
 	// add more update functions for each field
 	// to connect to each ui element
 
-	void SelectState(unsigned &); // select current state using a key
+	void SelectState(unsigned); // select current state using a key
+	unsigned GetState() const;
 
 signals:
 
 public slots:
-	void AddHost(QString &); // connect to main window class
+	unsigned AddHost(QString &); // connect to main window class
 	void DeleteHost();	 // connect to main window class
 
 private:
 
 	void run() override;	// must call start to call this
 
-	void updatePingData();
-	void handleOverflow();
+	// void updatePingData();
+	// void handleOverflow();
 
 	std::unordered_map<unsigned, HostInfo> m_hosts;
 	std::mutex m_mutex;
@@ -58,6 +59,7 @@ private:
 	// since m_pinger will be running in another thread
 	// where we need to call m_ioc.run (see test and asio docs)
 
+	unsigned m_key;
 	// move all sorts of statistical analysis here
 	// move this to another folder?
 };

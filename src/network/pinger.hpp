@@ -67,7 +67,8 @@ namespace network {
 
 		// better have a list?
 		boost::circular_buffer<ping_reply> replies;
-		// num replies (?)
+
+		unsigned m_nAnswered, m_nLost;
 	};
 
 
