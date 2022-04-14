@@ -48,7 +48,9 @@ namespace network {
 		HostInfo(icmp::endpoint &, std::string &);
 		virtual ~HostInfo();
 
-		std::vector<ping_reply> GetReplies(); // std::swap or std::move vectors
+		bool IsRepliesEmpty() const;
+		ping_reply GetLastReply() const;
+		std::vector<ping_reply> GetAllReplies() const;
 		void PushReply(ping_reply &);
 		void TimeSent(std::chrono::steady_clock::time_point &);
 		icmp::endpoint GetDestination() const ;

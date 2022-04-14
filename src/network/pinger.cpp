@@ -17,8 +17,16 @@ network::HostInfo::HostInfo(icmp::endpoint &host, std::string &hs)
 
 network::HostInfo::~HostInfo() {}
 
-std::vector<network::HostInfo::ping_reply> network::HostInfo::GetReplies() {
-	return std::move(replies);
+bool network::HostInfo::IsRepliesEmpty() const {
+	return replies.empty();
+}
+
+network::HostInfo::ping_reply network::HostInfo::GetLastReply() const {
+	return replies.back();
+}
+
+network::HostInfo::ping_reply network::HostInfo::GetAllReplies() const {
+	return std::vector<ping_reply> (replies.begin(), replies.end());
 }
 
 void network::HostInfo::PushReply(ping_reply &reply) {
