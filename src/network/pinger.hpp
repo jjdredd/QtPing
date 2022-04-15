@@ -1,3 +1,4 @@
+#pragma once
 // struct to hold all the reply status / etc (?)
 // class to hold all the host info with replies(?) (not but almost ring buffer)
 // pinger class to ping all the hosts
@@ -35,6 +36,8 @@ namespace network {
 			// add more later
 		};
 
+	public:
+
 		struct ping_reply {
 			reply_status status;
 			std::chrono::duration<double, std::milli> latency;
@@ -54,6 +57,7 @@ namespace network {
 		void PushReply(ping_reply &);
 		void TimeSent(std::chrono::steady_clock::time_point &);
 		icmp::endpoint GetDestination() const ;
+		float GetLostPercent() const;
 
 	private:
 

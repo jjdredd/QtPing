@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QString>
+#include <QThread>
 
 #include <iostream>
 #include <vector>
@@ -20,6 +21,7 @@ class QtPingerCore : public QThread {
 
 public:
 	QtPingerCore();
+	virtual ~QtPingerCore();
 
 	void StopPingerThread();
 
@@ -51,7 +53,7 @@ private:
 	// void updatePingData();
 	// void handleOverflow();
 
-	std::unordered_map<unsigned, HostInfo> m_hosts;
+	std::unordered_map<unsigned, network::HostInfo> m_hosts;
 	std::mutex m_mutex;
 	unsigned m_state;
 	boost::asio::io_context m_ioc;

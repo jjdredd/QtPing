@@ -25,7 +25,7 @@ network::HostInfo::ping_reply network::HostInfo::GetLastReply() const {
 	return replies.back();
 }
 
-network::HostInfo::ping_reply network::HostInfo::GetAllReplies() const {
+std::vector<network::HostInfo::ping_reply> network::HostInfo::GetAllReplies() const {
 	return std::vector<ping_reply> (replies.begin(), replies.end());
 }
 
@@ -44,6 +44,8 @@ void network::HostInfo::TimeSent(std::chrono::steady_clock::time_point &t) {
 }
 
 icmp::endpoint network::HostInfo::GetDestination() const { return destination; }
+
+float network::HostInfo::GetLostPercent() const { return m_nLost / m_nAnswered * 100; }
 
 
 //
@@ -137,7 +139,6 @@ void network::Pinger::timeOut() {
 	m_pMutex->lock();
 	for (auto it = m_pHosts->begin(); it != m_pHosts->end(); it++) {
 		HostInfo &h = it->second;
-		unsigned key = it->first;
 
 		HostInfo::ping_reply pr;
 		// if haven't received, push reply structure set to timed out

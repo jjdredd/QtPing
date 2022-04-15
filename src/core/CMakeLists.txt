@@ -1,6 +1,7 @@
-add_library(network OBJECT QtPingerCore.cpp)
+add_library(core OBJECT QtPingerCore.cpp)
 
-target_include_directories(network PUBLIC "${CMAKE_SOURCE_DIR}/network"
-  core PUBLIC "${CMAKE_SOURCE_DIR}/core")
+target_link_libraries(core PUBLIC network PUBLIC Qt5::Widgets PUBLIC Qt5::Core)
+target_include_directories(core PUBLIC "${CMAKE_SOURCE_DIR}/network"
+  PUBLIC "${CMAKE_SOURCE_DIR}/core")
 
 

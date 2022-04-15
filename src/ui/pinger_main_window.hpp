@@ -11,10 +11,12 @@
 #include <chrono>
 #include <vector>
 #include <string>
+#include <list>
 
 
 #include "ui_QtPingUI_1.h"
 #include "QtPingerCore.hpp"
+#include "HostListItem.hpp"
 
 
 //
@@ -60,12 +62,13 @@ class PingerMainWindow : public QMainWindow, public Ui::MainWindow {
 
 public:
 	PingerMainWindow(QWidget *parent = nullptr);
-	~PingerMainWindow();	// delete all the widgets?
+	virtual ~PingerMainWindow();	// delete all the widgets?
 
 private:
 	QtPingerCore m_appCore;
 	QTimer m_timer;
-	unsigned m_update_delay;
+	unsigned m_updateDelay;
+	std::list<HostListItem *> m_listItems;
 
 public slots:
 
@@ -73,7 +76,7 @@ public slots:
 	void UpdateDisplay();
 
 	// slot for ItemList
-	void ItemSelected(QListWidgetItem *litem);
+	void ItemSelected(QListWidgetItem *);
 
 	// buttons
 	void AddHost();

@@ -4,24 +4,25 @@
 #include <QString>
 #include <QListWidgetItem>
 
-#include <vector>
-#include <list>
-#include <string>
-
-#include <pinger.hpp>
+#include "pinger.hpp"
 
 
 //
 // class HostListItem
 // 
 
-class HostListItem : public  {
+class HostListItem : public QListWidgetItem  {
 
-	Q_OBJECT
+	Q_OBJECT;
 
 public:
+	HostListItem() {}
+	virtual ~HostListItem() {}
+
+	unsigned GetKey() const { return m_hostKey; }
+	void SetKey(unsigned k) { m_hostKey = k; }
 
 private:
-	unsigned m_hostIndex;
+	unsigned m_hostKey;
 
 };

@@ -4,41 +4,6 @@
 
 #include "pinger_main_window.hpp"
 
-//
-// class PingerThread
-// 
-
-PingerThread::PingerThread()
-	: m_query_timer(m_ui_ioc), m_counter(0) {
-}
-
-void PingerThread::StopThread() {
-	m_ui_ioc.stop();
-	exit();
-}
-
-PingerThread::~PingerThread() {
-	m_ui_ioc.stop();
-	exit();
-}
-
-void PingerThread::run() {
-
-	m_query_timer.expires_after(std::chrono::seconds(1));
-	m_query_timer.async_wait( [&] (const boost::system::error_code& error)
-	{
-		this->m_counter++;
-		this->text_TTL = QString::number(this->m_counter);
-		std::cout << "query_timer " << this->text_TTL.toStdString() << std::endl;
-		emit setSequenceN(this->text_TTL);
-		m_query_timer.expires_after(std::chrono::seconds(1));
-		run();
-	});
-
-	m_ui_ioc.run();
-
-}
-
 
 //
 // class PingerMainWindow
@@ -47,7 +12,7 @@ void PingerThread::run() {
 PingerMainWindow::PingerMainWindow(QWidget *parent)
 	: QMainWindow(parent) {
 
-	m_update_delay = 5000;
+	m_updateDelay = 5000;
 
  	setupUi(this);
 	
@@ -68,7 +33,7 @@ PingerMainWindow::PingerMainWindow(QWidget *parent)
 	connect(b_DeleteHost, SIGNAL(clicked()), this, SLOT(DeleteHost()));
 
 	// list widget signals
-	connect(HostListWidget, SIGNAL(itemClicked()),
+	connect(HostListWidget, SIGNAL(itemClicked(QListWidgetItem *)),
 		this, SLOT(ItemSelected(QListWidgetItem *)));
 
 	// line edit slots
@@ -98,17 +63,47 @@ PingerMainWindow::PingerMainWindow(QWidget *parent)
 	connect(this, SIGNAL(ClearDisplayStats()), e_lost, SLOT(clear()));
 	connect(this, SIGNAL(ClearDisplayStats()), e_TTL, SLOT(clear()));
 
-	
-	m_timer.start(m_update_delay);
+	m_appCore.start();
+	m_timer.start(m_updateDelay);
 
 }
 
 PingerMainWindow::~PingerMainWindow() {
 	// free widgets?
+	m_appCore.StopPingerThread();
 }
 
 
 void PingerMainWindow::AddHost() {
-	std::cout << "AddHost test stub: " << std::endl;
+
+	QString remote_host_1("66.163.70.130");
+	unsigned key = m_appCore.AddHost(remote_host_1);
+	m_appCore.SelectState(key);
 }
 
+void PingerMainWindow::DeleteHost() {
+	unsigned key = m_appCore.GetState();
+	m_appCore.DeleteHost();
+	m_listItems.remove_if( [=] (HostListItem *hli) {
+		if (hli->GetKey() == key) { return true; }
+		return false;
+	} );
+	if (!m_listItems.empty()) {
+		m_appCore.SelectState((*m_listItems.begin())->GetKey());
+	}
+}
+
+void PingerMainWindow::ItemSelected(QListWidgetItem *litem) {
+	m_appCore.SelectState(dynamic_cast<HostListItem*>(litem)->GetKey());
+}
+
+void PingerMainWindow::UpdateDisplay() {
+	UpdateHostName(m_appCore.GetHostName());
+	UpdateAddress(m_appCore.GetAddress());
+	UpdateAverage(m_appCore.GetAverage());
+	UpdateStdDev(m_appCore.GetStdDev());
+	UpdateMin(m_appCore.GetMin());
+	UpdateMax(m_appCore.GetMax());
+	UpdateLost(m_appCore.GetLost());
+	UpdateTTL(m_appCore.GetTTL());
+}
