@@ -87,8 +87,7 @@ namespace network {
 		       boost::asio::io_context &);
 		virtual ~Pinger();
 
-		void AddHost(std::unordered_map<unsigned, HostInfo> *,
-			     std::string &, unsigned key);
+		void AddHost(std::string &, unsigned key);
 
 	private:
 
@@ -114,6 +113,9 @@ namespace network {
 
 		std::unordered_map<unsigned, HostInfo> *m_pHosts;
 		std::mutex *m_pMutex;
+
+		
+		std::chrono::duration<long int> m_sendInterval, m_timeOutInterval;
 
 		static const unsigned s_dataBufferSize = 56;
 	};

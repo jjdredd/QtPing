@@ -32,18 +32,23 @@ QString QtPingerCore::GetAddress() {
 }
 
 QString QtPingerCore::GetAverage() {
-	return QString();
+	std::lock_guard<std::mutex> lock(m_mutex);
+	if (!m_hosts.contains(m_state)) { return QString(); }
+	return QString::number(m_hosts.at(m_state).GetLastReply().latency.count());
 }
 
 QString QtPingerCore::GetStdDev() {
+	std::lock_guard<std::mutex> lock(m_mutex);
 	return QString();
 }
 
 QString QtPingerCore::GetMin() {
+	std::lock_guard<std::mutex> lock(m_mutex);
 	return QString();
 }
 
 QString QtPingerCore::GetMax() {
+	std::lock_guard<std::mutex> lock(m_mutex);
 	return QString();
 }
 
@@ -56,17 +61,25 @@ QString QtPingerCore::GetLost() {
 QString QtPingerCore::GetTTL() {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	if (!m_hosts.contains(m_state)) { return QString(); }
-	return QString(m_hosts.at(m_state).GetLastReply().time_to_live);
+	return QString::number(m_hosts.at(m_state).GetLastReply().time_to_live);
 }
 
+
+// Check if the state is existing
 void QtPingerCore::SelectState(unsigned state) { m_state = state; }
 
 unsigned QtPingerCore::GetState() const { return m_state; }
 
+bool QtPingerCore::IsDataOK() {
+	std::lock_guard<std::mutex> lock(m_mutex);
+	if (!m_hosts.contains(m_state)) { return false; }
+	return !m_hosts.at(m_state).IsRepliesEmpty();
+}
+
 unsigned QtPingerCore::AddHost(QString &hostname) {
 	std::string host_string(hostname.toStdString());
 	while (m_hosts.contains(m_key)) { m_key++; }
-	m_pinger.AddHost(&m_hosts, host_string, m_key);
+	m_pinger.AddHost(host_string, m_key);
 	return m_state = m_key;
 }
 

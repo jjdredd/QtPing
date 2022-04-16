@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <boost/system/error_code.hpp>
+#include <QInputDialog>
 
 #include "pinger_main_window.hpp"
 
@@ -12,7 +13,7 @@
 PingerMainWindow::PingerMainWindow(QWidget *parent)
 	: QMainWindow(parent) {
 
-	m_updateDelay = 5000;
+	m_updateDelay = 1000;
 
  	setupUi(this);
 	
@@ -26,7 +27,7 @@ PingerMainWindow::PingerMainWindow(QWidget *parent)
 	e_TTL->setReadOnly(true);
 
 	// timer signals
-	connect(&m_timer, SIGNAL(QTimer::timeout), this, SLOT(UpdateDisplay()));
+	connect(&m_timer, SIGNAL(timeout()), this, SLOT(UpdateDisplay()));
 
 	// button signals
 	connect(b_AddHost, SIGNAL(clicked()), this, SLOT(AddHost()));
@@ -76,14 +77,31 @@ PingerMainWindow::~PingerMainWindow() {
 
 void PingerMainWindow::AddHost() {
 
-	QString remote_host_1("66.163.70.130");
-	unsigned key = m_appCore.AddHost(remote_host_1);
+	// check if host has already been added
+
+	bool ok = true;
+	QString input_text;
+
+	input_text = QInputDialog::getText(this, QString("Add host name or ip"),
+					   QString("Host name or ip:"), QLineEdit::Normal,
+					   QString(""), &ok);
+
+	// input_text = QString("66.163.70.130");
+	if (!ok || input_text.isEmpty()) { return; }
+
+	HostListItem *li = new HostListItem();
+	unsigned key = m_appCore.AddHost(input_text);
 	m_appCore.SelectState(key);
+	li->SetKey(key);
+	li->setText(input_text);
+	HostListWidget->addItem(li);
+
 }
 
 void PingerMainWindow::DeleteHost() {
 	unsigned key = m_appCore.GetState();
 	m_appCore.DeleteHost();
+	// search, store, remove from list, remove from app, remove from widget, delete
 	m_listItems.remove_if( [=] (HostListItem *hli) {
 		if (hli->GetKey() == key) { return true; }
 		return false;
@@ -91,6 +109,9 @@ void PingerMainWindow::DeleteHost() {
 	if (!m_listItems.empty()) {
 		m_appCore.SelectState((*m_listItems.begin())->GetKey());
 	}
+	// HostListWidget->remoteItemWidget(hli);
+	// delete hli;
+		
 }
 
 void PingerMainWindow::ItemSelected(QListWidgetItem *litem) {
@@ -98,12 +119,14 @@ void PingerMainWindow::ItemSelected(QListWidgetItem *litem) {
 }
 
 void PingerMainWindow::UpdateDisplay() {
-	UpdateHostName(m_appCore.GetHostName());
-	UpdateAddress(m_appCore.GetAddress());
-	UpdateAverage(m_appCore.GetAverage());
-	UpdateStdDev(m_appCore.GetStdDev());
-	UpdateMin(m_appCore.GetMin());
-	UpdateMax(m_appCore.GetMax());
-	UpdateLost(m_appCore.GetLost());
-	UpdateTTL(m_appCore.GetTTL());
+	std::cout << "UpdateDisplay() called " << std::endl;
+	if (!m_appCore.IsDataOK()) { return; }
+	emit UpdateHostName(m_appCore.GetHostName());
+	emit UpdateAddress(m_appCore.GetAddress());
+	emit UpdateAverage(m_appCore.GetAverage());
+	emit UpdateStdDev(m_appCore.GetStdDev());
+	emit UpdateMin(m_appCore.GetMin());
+	emit UpdateMax(m_appCore.GetMax());
+	emit UpdateLost(m_appCore.GetLost());
+	emit UpdateTTL(m_appCore.GetTTL());
 }

@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
 			  << "Adding host (" << remote_host_1 << ")"
 			  << std::endl;
 
-		p.AddHost(&him, remote_host_1, 1);
+		p.AddHost(remote_host_1, 1);
 	}
 
 	std::this_thread::sleep_for(std::chrono::seconds(17));
@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
 			  << "Adding host (" << remote_host_2 << ")"
 			  << std::endl;
 
-		p.AddHost(&him, remote_host_2, 2);
+		p.AddHost(remote_host_2, 2);
 	}
 
 	std::this_thread::sleep_for(std::chrono::seconds(29));

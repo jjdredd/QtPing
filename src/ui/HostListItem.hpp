@@ -11,9 +11,10 @@
 // class HostListItem
 // 
 
-class HostListItem : public QListWidgetItem  {
+// use
+// https://doc.qt.io/qt-5/properties.html
 
-	Q_OBJECT;
+class HostListItem : public QListWidgetItem  {
 
 public:
 	HostListItem() {}

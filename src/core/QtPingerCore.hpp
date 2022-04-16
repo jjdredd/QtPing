@@ -17,7 +17,6 @@
 // core of the application
 
 class QtPingerCore : public QThread {
-	Q_OBJECT;
 
 public:
 	QtPingerCore();
@@ -40,9 +39,8 @@ public:
 	void SelectState(unsigned); // select current state using a key
 	unsigned GetState() const;
 
-signals:
+	bool IsDataOK();
 
-public slots:
 	unsigned AddHost(QString &); // connect to main window class
 	void DeleteHost();	 // connect to main window class
 
