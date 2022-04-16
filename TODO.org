@@ -1,7 +1,6 @@
 * ToDo
-** Check validity of user input for host name/ip address
-   when adding a host
+** Check validity of user input for host name/ip address when adding a host
 ** add original hostname display to ui
 ** add current ping display to ui
 ** Use properties instead of subclass of qListwidgetItem
-** 
+** Set item selection in item list widget whenever
