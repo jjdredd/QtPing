@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 
 #include <boost/system/error_code.hpp>
 #include <QInputDialog>
@@ -95,6 +96,7 @@ void PingerMainWindow::AddHost() {
 	li->SetKey(key);
 	li->setText(input_text);
 	HostListWidget->addItem(li);
+	m_listItems.push_back(li);
 
 }
 
@@ -102,15 +104,21 @@ void PingerMainWindow::DeleteHost() {
 	unsigned key = m_appCore.GetState();
 	m_appCore.DeleteHost();
 	// search, store, remove from list, remove from app, remove from widget, delete
-	m_listItems.remove_if( [=] (HostListItem *hli) {
-		if (hli->GetKey() == key) { return true; }
-		return false;
-	} );
+	auto it = std::find_if(m_listItems.begin(), m_listItems.end(),
+			  [=] (HostListItem *hli) {
+				  if (hli->GetKey() == key) { return true; }
+				  return false;
+			  } );
+	if (it == m_listItems.end()) { return; }
+
+	HostListItem *item = *it;
+
+	m_listItems.erase(it);
 	if (!m_listItems.empty()) {
 		m_appCore.SelectState((*m_listItems.begin())->GetKey());
 	}
-	// HostListWidget->remoteItemWidget(hli);
-	// delete hli;
+	HostListWidget->removeItemWidget(item);
+	delete item;
 		
 }
 
