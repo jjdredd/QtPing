@@ -46,6 +46,7 @@
 //     QLineEdit *e_Max;
 //     QLineEdit *e_lost;
 //     QLineEdit *e_TTL;
+//     QLineEdit *e_currentPing;
 //     
 //     QListWidget *HostListWidget;
 //     
@@ -87,6 +88,7 @@ signals:
 
 	void UpdateHostName(const QString &);
 	void UpdateAddress(const QString &);
+	void UpdateCurrent(const QString &);
 	void UpdateAverage(const QString &);
 	void UpdateStdDev(const QString &);
 	void UpdateMin(const QString &);

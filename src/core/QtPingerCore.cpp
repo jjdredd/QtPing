@@ -31,10 +31,15 @@ QString QtPingerCore::GetAddress() {
 	return QString(m_hosts.at(m_state).GetLastReply().remote_ip.to_string().c_str());
 }
 
-QString QtPingerCore::GetAverage() {
+QString QtPingerCore::GetCurrent() {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	if (!m_hosts.contains(m_state)) { return QString(); }
 	return QString::number(m_hosts.at(m_state).GetLastReply().latency.count());
+}
+
+QString QtPingerCore::GetAverage() {
+	std::lock_guard<std::mutex> lock(m_mutex);
+	return QString();
 }
 
 QString QtPingerCore::GetStdDev() {

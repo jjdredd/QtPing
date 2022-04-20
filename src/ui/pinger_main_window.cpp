@@ -14,6 +14,8 @@
 PingerMainWindow::PingerMainWindow(QWidget *parent)
 	: QMainWindow(parent) {
 
+	setWindowTitle("QtPinger");
+
 	m_updateDelay = 1000;
 
  	setupUi(this);
@@ -26,6 +28,7 @@ PingerMainWindow::PingerMainWindow(QWidget *parent)
 	e_Max->setReadOnly(true);
 	e_lost->setReadOnly(true);
 	e_TTL->setReadOnly(true);
+	e_currentPing->setReadOnly(true);
 
 	// timer signals
 	connect(&m_timer, SIGNAL(timeout()), this, SLOT(UpdateDisplay()));
@@ -55,6 +58,8 @@ PingerMainWindow::PingerMainWindow(QWidget *parent)
 		e_lost, SLOT(setText(const QString &)));
 	connect(this, SIGNAL(UpdateTTL(const QString &)),
 		e_TTL, SLOT(setText(const QString &)));
+	connect(this, SIGNAL(UpdateCurrent(const QString &)),
+		e_currentPing, SLOT(setText(const QString &)));
 
 	connect(this, SIGNAL(ClearDisplayStats()), e_HostName, SLOT(clear()));
 	connect(this, SIGNAL(ClearDisplayStats()), e_Address, SLOT(clear()));
@@ -140,6 +145,7 @@ void PingerMainWindow::UpdateDisplay() {
 	if (!m_appCore.IsDataOK()) { return; }
 	emit UpdateHostName(m_appCore.GetHostName());
 	emit UpdateAddress(m_appCore.GetAddress());
+	emit UpdateCurrent(m_appCore.GetCurrent());
 	emit UpdateAverage(m_appCore.GetAverage());
 	emit UpdateStdDev(m_appCore.GetStdDev());
 	emit UpdateMin(m_appCore.GetMin());

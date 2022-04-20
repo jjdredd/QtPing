@@ -26,6 +26,7 @@ public:
 
 	QString GetHostName();
 	QString GetAddress();
+	QString GetCurrent();
 	QString GetAverage();
 	QString GetStdDev();
 	QString GetMin();
