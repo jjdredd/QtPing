@@ -1,8 +1,8 @@
 #include <iostream>
 #include <algorithm>
 
-#include <boost/system/error_code.hpp>
 #include <QInputDialog>
+#include <QMessageBox>
 
 #include "pinger_main_window.hpp"
 
@@ -82,21 +82,30 @@ void PingerMainWindow::AddHost() {
 
 	bool ok = true;
 	QString input_text;
+	unsigned key;
 
 	input_text = QInputDialog::getText(this, QString("Add host name or ip"),
 					   QString("Host name or ip:"), QLineEdit::Normal,
 					   QString(""), &ok);
 
-	// input_text = QString("66.163.70.130");
 	if (!ok || input_text.isEmpty()) { return; }
 
+	try {
+		key = m_appCore.AddHost(input_text);
+	} catch (boost::system::system_error &e) {
+		QMessageBox::warning(this, "Failed to add host!",
+				     "Check hostname or ip.");
+		return;
+	}
+
 	HostListItem *li = new HostListItem();
-	unsigned key = m_appCore.AddHost(input_text);
+
 	m_appCore.SelectState(key);
 	li->SetKey(key);
 	li->setText(input_text);
 	HostListWidget->addItem(li);
 	m_listItems.push_back(li);
+	HostListWidget->setCurrentItem(li);
 
 }
 

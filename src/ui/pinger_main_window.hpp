@@ -7,6 +7,7 @@
 #include <QTimer>
 
 #include <boost/asio.hpp>
+#include <boost/system/error_code.hpp>
 
 #include <chrono>
 #include <vector>
