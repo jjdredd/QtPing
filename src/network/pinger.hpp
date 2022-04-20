@@ -54,6 +54,7 @@ namespace network {
 		bool IsRepliesEmpty() const;
 		ping_reply GetLastReply() const;
 		std::vector<ping_reply> GetAllReplies() const;
+		std::vector<ping_reply> GetNewReplies() const;
 		void PushReply(ping_reply &);
 		void TimeSent(std::chrono::steady_clock::time_point &);
 		icmp::endpoint GetDestination() const ;
@@ -72,7 +73,7 @@ namespace network {
 		// better have a list?
 		boost::circular_buffer<ping_reply> replies;
 
-		unsigned m_nAnswered, m_nLost;
+		unsigned m_nAnswered, m_nLost, m_newReplies;
 	};
 
 

@@ -13,7 +13,8 @@ using namespace network;
 
 network::HostInfo::HostInfo(icmp::endpoint &host, std::string &hs)
 	: destination(host), sequence(1), reply_received(false)
-	, host_string(hs), replies(100), m_nAnswered(0), m_nLost(0) {}
+	, host_string(hs), replies(100), m_nAnswered(0), m_nLost(0)
+	, m_newReplies(0) {}
 
 network::HostInfo::~HostInfo() {}
 
@@ -29,12 +30,19 @@ std::vector<network::HostInfo::ping_reply> network::HostInfo::GetAllReplies() co
 	return std::vector<ping_reply> (replies.begin(), replies.end());
 }
 
+std::vector<network::HostInfo::ping_reply> network::HostInfo::GetNewReplies() const {
+	unsigned new_replies = m_newReplies;
+	m_newReplies = 0;
+	return std::vector<ping_reply> (replies.end() - new_replies, replies.end());
+}
+
 void network::HostInfo::PushReply(ping_reply &reply) {
 	if (reply.status == network::HostInfo::Reply) { m_nAnswered++; }
 	else { m_nLost++; }
 
 	replies.push_back(reply);
 	reply_received = true;
+	m_newReplies++;
 }
 
 void network::HostInfo::TimeSent(std::chrono::steady_clock::time_point &t) {
