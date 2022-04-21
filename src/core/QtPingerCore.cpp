@@ -75,11 +75,16 @@ void QtPingerCore::SelectState(unsigned state) { m_state = state; }
 
 unsigned QtPingerCore::GetState() const { return m_state; }
 
-bool QtPingerCore::IsDataOK() {
-	std::lock_guard<std::mutex> lock(m_mutex);
-	if (!m_hosts.contains(m_state)) { return false; }
-	return !m_hosts.at(m_state).IsRepliesEmpty();
+bool QtPingerCore::IsDataOK() { return m_isDataOk; }
+
+void QtPingerCore::UpdateData() {
+	// 1. lock mutex
+	// Check if state (key) exists
+	// 2. get data from m_hosts for each host
+	// 3. pass data to m_hostStats
+	// 4. set m_isDataok
 }
+
 
 unsigned QtPingerCore::AddHost(QString &hostname) {
 	std::string host_string(hostname.toStdString());

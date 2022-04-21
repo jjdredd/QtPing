@@ -13,8 +13,7 @@ using namespace network;
 
 network::HostInfo::HostInfo(icmp::endpoint &host, std::string &hs)
 	: destination(host), sequence(1), reply_received(false)
-	, host_string(hs), replies(100), m_nAnswered(0), m_nLost(0)
-	, m_newReplies(0) {}
+	, host_string(hs), replies(100), m_newReplies(0) {}
 
 network::HostInfo::~HostInfo() {}
 
@@ -37,9 +36,6 @@ std::vector<network::HostInfo::ping_reply> network::HostInfo::GetNewReplies() co
 }
 
 void network::HostInfo::PushReply(ping_reply &reply) {
-	if (reply.status == network::HostInfo::Reply) { m_nAnswered++; }
-	else { m_nLost++; }
-
 	replies.push_back(reply);
 	reply_received = true;
 	m_newReplies++;
@@ -52,11 +48,6 @@ void network::HostInfo::TimeSent(std::chrono::steady_clock::time_point &t) {
 }
 
 icmp::endpoint network::HostInfo::GetDestination() const { return destination; }
-
-float network::HostInfo::GetLostPercent() const {
-	if (m_nAnswered == 0) return 0;
-	return m_nLost / m_nAnswered * 100;
-}
 
 
 //

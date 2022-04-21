@@ -29,6 +29,8 @@ namespace network {
 
 		friend class Pinger;
 
+	public:
+
 		enum reply_status {
 			Reply,
 			Unreachable,
@@ -58,7 +60,6 @@ namespace network {
 		void PushReply(ping_reply &);
 		void TimeSent(std::chrono::steady_clock::time_point &);
 		icmp::endpoint GetDestination() const ;
-		float GetLostPercent() const;
 
 	private:
 
@@ -73,7 +74,7 @@ namespace network {
 		// better have a list?
 		boost::circular_buffer<ping_reply> replies;
 
-		unsigned m_nAnswered, m_nLost, m_newReplies;
+		unsigned m_newReplies;
 	};
 
 

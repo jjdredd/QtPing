@@ -6,6 +6,8 @@
 #include "statistics.hpp"
 #include "pinger.hpp"
 
+using namespace network;
+
 class HostDataStatistics {
 
 	// 1. move lost % calculation here as well
@@ -16,13 +18,31 @@ class HostDataStatistics {
 public:
 	HostDataStatistics()
 		: m_currentPing(0), m_min(-1), m_max(0)
-		, m_lostPercent(0), m_timeToLive(0) {}
+		, m_lostPercent(0), m_timeToLive(0)
+		, m_nAnswered(0), m_nLost(0) {}
 
 	~HostDataStatistics();
 
 	// add a reply and compute statistics
-	void ReplyUpdate(std::vector<ping_reply> &rv);
-	void ReplyUpdateSingle(ping_reply &pr);
+	void ReplyUpdate(const std::vector<HostInfo::ping_reply> &rv) {
+		for (const auto &pr : rv) { ReplyUpdateSingle(pr); }
+	}
+
+	void ReplyUpdateSingle(const HostInfo::ping_reply &pr) {
+		if (pr.status != HostInfo::Reply) {
+			m_nLost++;
+			return;
+		}
+
+		m_timeToLive = pr.time_to_live;
+		m_currentPing = pr.latency;
+		m_sequence = pr.sequence;
+		m_ipAddress = QString::fromStdString(pr.remote_ip.to_string());
+		m_hostName = QString::fromStdString(pr.remote_hostname);
+
+		m_stdDev.ConsumeDataPoint(pr.latency);
+		m_nAnswered++;
+	}
 
 	// setters
 	void SetHostName(QString &hn) { m_hostName = hn; }
@@ -35,7 +55,10 @@ public:
 	float GetPing() const { return m_currentPing; }
 	float GetMin() const { return m_min; }
 	float GetMax() const { return m_max; }
-	float GetLostPercent() const { return m_lostPercent; }
+	float GetLostPercent() const {
+		if (m_nAnswered == 0) { return 0; }
+		return ((float) m_nLost) / m_nAnswered * 100;
+	}
 
 	float GetMean() const { return m_stdDev.CurrentMean(); }
 	float GetStdDev() const { return m_stdDev.CurrentValue(); }
@@ -44,8 +67,8 @@ public:
 	
 private:
 	QString m_hostName, m_ipAddress;
-	float m_currentPing, m_min, m_max, m_lostPercent;
-	unsigned m_timeToLive;
+	float m_currentPing, m_min, m_max;
+	unsigned m_timeToLive, m_sequence, m_nAnswered, m_nLost;
 
 	StatAggregatorWelfordStD<float> m_stdDev;
 
