@@ -1,4 +1,0 @@
-* ToDo
-** DONE Check validity of user input for host name/ip address when adding a host
-** DONE add current ping display to ui
-** DONE Set item selection in item list widget whenever
