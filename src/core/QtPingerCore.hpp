@@ -42,7 +42,7 @@ public:
 	unsigned GetState() const;
 
 	bool IsDataOK();
-	void UpdateData();
+	bool UpdateData();
 
 	unsigned AddHost(QString &); // connect to main window class
 	void DeleteHost();	 // connect to main window class

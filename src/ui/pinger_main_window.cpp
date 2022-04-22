@@ -138,11 +138,12 @@ void PingerMainWindow::DeleteHost() {
 
 void PingerMainWindow::ItemSelected(QListWidgetItem *litem) {
 	m_appCore.SelectState(dynamic_cast<HostListItem*>(litem)->GetKey());
+	UpdateDisplay();
 }
 
 void PingerMainWindow::UpdateDisplay() {
 	std::cout << "UpdateDisplay() called " << std::endl;
-	if (!m_appCore.IsDataOK()) { return; }
+	if (!m_appCore.UpdateData()) { return; }
 	emit UpdateHostName(m_appCore.GetHostName());
 	emit UpdateAddress(m_appCore.GetAddress());
 	emit UpdateCurrent(m_appCore.GetCurrent());

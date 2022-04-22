@@ -29,7 +29,7 @@ std::vector<network::HostInfo::ping_reply> network::HostInfo::GetAllReplies() co
 	return std::vector<ping_reply> (replies.begin(), replies.end());
 }
 
-std::vector<network::HostInfo::ping_reply> network::HostInfo::GetNewReplies() const {
+std::vector<network::HostInfo::ping_reply> network::HostInfo::GetNewReplies() {
 	unsigned new_replies = m_newReplies;
 	m_newReplies = 0;
 	return std::vector<ping_reply> (replies.end() - new_replies, replies.end());

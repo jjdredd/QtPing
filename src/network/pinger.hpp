@@ -56,7 +56,7 @@ namespace network {
 		bool IsRepliesEmpty() const;
 		ping_reply GetLastReply() const;
 		std::vector<ping_reply> GetAllReplies() const;
-		std::vector<ping_reply> GetNewReplies() const;
+		std::vector<ping_reply> GetNewReplies();
 		void PushReply(ping_reply &);
 		void TimeSent(std::chrono::steady_clock::time_point &);
 		icmp::endpoint GetDestination() const ;

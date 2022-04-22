@@ -17,11 +17,11 @@ class HostDataStatistics {
 
 public:
 	HostDataStatistics()
-		: m_currentPing(0), m_min(-1), m_max(0)
-		, m_lostPercent(0), m_timeToLive(0)
-		, m_nAnswered(0), m_nLost(0) {}
+		: m_currentPing(0), m_min(10000), m_max(0)
+		, m_timeToLive(0), m_nAnswered(0), m_nLost(0)
+		, m_stdDev(0) {}
 
-	~HostDataStatistics();
+	~HostDataStatistics() {}
 
 	// add a reply and compute statistics
 	void ReplyUpdate(const std::vector<HostInfo::ping_reply> &rv) {
@@ -35,13 +35,16 @@ public:
 		}
 
 		m_timeToLive = pr.time_to_live;
-		m_currentPing = pr.latency;
+		m_currentPing = pr.latency.count();
 		m_sequence = pr.sequence;
 		m_ipAddress = QString::fromStdString(pr.remote_ip.to_string());
 		m_hostName = QString::fromStdString(pr.remote_hostname);
 
-		m_stdDev.ConsumeDataPoint(pr.latency);
+		m_stdDev.ConsumeDataPoint(pr.latency.count());
 		m_nAnswered++;
+
+		if (m_currentPing < m_min) { m_min = m_currentPing; }
+		if (m_currentPing > m_max) { m_max = m_currentPing; }
 	}
 
 	// setters
