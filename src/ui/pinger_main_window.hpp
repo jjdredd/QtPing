@@ -18,6 +18,7 @@
 #include "ui_QtPingUI_1.h"
 #include "QtPingerCore.hpp"
 #include "HostListItem.hpp"
+#include "ping_charts.hpp"
 
 
 //
@@ -49,6 +50,8 @@
 //     QLineEdit *e_currentPing;
 //     
 //     QListWidget *HostListWidget;
+//
+//     QChartView *ChartView;
 //     
 //     QFrame *framePlot;
 //     
@@ -71,6 +74,7 @@ private:
 	QTimer m_timer;
 	unsigned m_updateDelay;
 	std::list<HostListItem *> m_listItems;
+	PingLineChart m_lineChart;
 
 public slots:
 

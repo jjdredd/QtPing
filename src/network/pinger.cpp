@@ -14,6 +14,9 @@ using namespace network;
 network::HostInfo::HostInfo(icmp::endpoint &host, std::string &hs)
 	: destination(host), sequence(1), reply_received(false)
 	, host_string(hs), replies(100), m_newReplies(0) {}
+//                                 ^^^
+//                                 fix this magic constant
+
 
 network::HostInfo::~HostInfo() {}
 
@@ -59,7 +62,7 @@ network::Pinger::Pinger(std::unordered_map<unsigned, HostInfo> *him, std::mutex 
 	: host_resolver(io), sock(io, icmp::v4()), stimer(io)
 	, m_pHosts(him), m_pMutex(mtx) {
 
-	m_sendInterval = std::chrono::seconds(2);
+	m_sendInterval = std::chrono::seconds(1);
 	m_timeOutInterval = std::chrono::seconds(1);
 
 	// compute and set identifier
@@ -130,7 +133,10 @@ void network::Pinger::startSend() {
 	}
 	m_pMutex->unlock();
 
-	stimer.expires_after(m_sendInterval);
+	// XXX FIXME:
+	// need a timeout timer only when a reply hasn't been received!
+	// otherwise it needs to be cancelled
+	stimer.expires_after(m_timeOutInterval);
 	stimer.async_wait( [&] (const boost::system::error_code& error)
 	{
 		if (error) {
@@ -158,7 +164,7 @@ void network::Pinger::timeOut() {
 	}
 	m_pMutex->unlock();
 
-	stimer.expires_after(m_timeOutInterval);
+	stimer.expires_after(m_sendInterval);
 	stimer.async_wait( [&] (const boost::system::error_code& error)
 	{
 		if (error) {

@@ -13,7 +13,7 @@ endif()
 
 
 find_package(Boost 1.36.0 REQUIRED COMPONENTS program_options system REQUIRED)
-find_package(Qt5 COMPONENTS Widgets Core REQUIRED)
+find_package(Qt5 COMPONENTS Widgets Core Gui Charts REQUIRED)
 
 
 # set CFLAGS etc

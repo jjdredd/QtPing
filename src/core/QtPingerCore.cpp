@@ -64,6 +64,10 @@ QString QtPingerCore::GetTTL() {
 	return QString::number(m_hostStats.at(m_state).GetTTL());
 }
 
+QVector<QPointF> QtPingerCore::GetLatencyPoints() const {
+	return latencyPoints;
+}
+
 
 // Check if the state is existing
 void QtPingerCore::SelectState(unsigned state) { m_state = state; }
@@ -79,6 +83,18 @@ bool QtPingerCore::UpdateData() {
 		rv = it->second.GetNewReplies();
 		if (!m_isDataOk) { m_isDataOk = !rv.empty(); }
 		m_hostStats.at(it->first).ReplyUpdate(rv);
+	}
+
+	// only for the current state
+	if (!m_hosts.contains(m_state)) { return m_isDataOk; }
+	const auto replies = m_hosts.at(m_state).GetAllReplies();
+	latencyPoints.clear();
+	latencyPoints.reserve(20); // m_nChartPoints
+	// save points for charts
+	for (const auto &r: replies) {
+		// check if reply is actually valid!!
+		float y_val = r.status == network::HostInfo::Reply ? r.latency.count() : 0;
+		latencyPoints.push_back(QPointF(r.sequence, y_val));
 	}
 	return m_isDataOk;
 }

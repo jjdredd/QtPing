@@ -2,10 +2,11 @@
 
 #pragma once
 
-#include <vector>
-
+#include <QVector>
+#include <QtCharts>
 #include <QtCharts/QChartView>
 #include <QtCharts/QLineSeries>
+#include <QtCharts/QValueAxis>
 
 
 // 
@@ -17,16 +18,20 @@
 class PingChartsBase {
 
 public:
-	PingChartsBase(QChartView &view, unsigned npoints)
+	PingChartsBase(unsigned npoints)
 		: m_npoints(npoints) {
-		view.setChart(&m_chart);
+
+		m_chart.legend()->hide();
+		m_chart.createDefaultAxes();
+		m_chart.setTitle("Latency plot.");
 	}
 
-	virtual ~PingChartsBase();
+	virtual ~PingChartsBase() {};
 
-	virtual void AppendPoints(const std::vector<QPointF> &);
+	virtual void ReplacePoints(const QVector<QPointF> &) = 0;
+	void SetChartView(QChartView *view) { view->setChart(&m_chart); }
 
-private:
+protected:
 	unsigned m_npoints;
 	QChart m_chart;
 };
@@ -39,12 +44,15 @@ private:
 class PingLineChart : public PingChartsBase {
 
 public:
-	PingLineChart();
-	virtual ~PingLineChart();
+	PingLineChart(unsigned);
+	~PingLineChart();
 
-	void AppendPoints(const std::vector<QPointF> &) override;
+	void ReplacePoints(const QVector<QPointF> &) override;
 
 private:
+	void pointsMaxMin(const QVector<QPointF> &);
 
 	QLineSeries m_series;
-}
+	QValueAxis m_axisX, m_axisY;
+	float m_xmax, m_ymax;
+};

@@ -2,6 +2,8 @@
 
 #include <QString>
 #include <QThread>
+#include <QPointF>
+#include <QVector>
 
 #include <iostream>
 #include <vector>
@@ -34,9 +36,7 @@ public:
 	QString GetMax();
 	QString GetLost();
 	QString GetTTL();
-	// etc
-	// add more update functions for each field
-	// to connect to each ui element
+	QVector<QPointF> GetLatencyPoints() const;
 
 	void SelectState(unsigned); // select current state using a key
 	unsigned GetState() const;
@@ -51,9 +51,6 @@ private:
 
 	void run() override;	// must call start to call this
 
-	// void updatePingData();
-	// void handleOverflow();
-
 	std::unordered_map<unsigned, HostDataStatistics> m_hostStats;
 	std::unordered_map<unsigned, network::HostInfo> m_hosts;
 	std::mutex m_mutex;
@@ -61,12 +58,13 @@ private:
 	boost::asio::io_context m_ioc;
 	network::Pinger m_pinger;
 	bool m_isDataOk;
+	QVector<QPointF> latencyPoints;
 	// since m_pinger will be running in another thread
 	// where we need to call m_ioc.run (see test and asio docs)
 
 	unsigned m_key;
-	// move all sorts of statistical analysis here
-	// move this to another folder?
+
+	unsigned m_nChartPoints;
 };
 
 // HostData class with stats

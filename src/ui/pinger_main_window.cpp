@@ -12,7 +12,9 @@
 // 
 
 PingerMainWindow::PingerMainWindow(QWidget *parent)
-	: QMainWindow(parent) {
+	: QMainWindow(parent), m_lineChart(20) {
+	//                               ^^
+	// Fix this magic constant!!!    ^^
 
 	setWindowTitle("QtPinger");
 
@@ -69,6 +71,9 @@ PingerMainWindow::PingerMainWindow(QWidget *parent)
 	connect(this, SIGNAL(ClearDisplayStats()), e_Max, SLOT(clear()));
 	connect(this, SIGNAL(ClearDisplayStats()), e_lost, SLOT(clear()));
 	connect(this, SIGNAL(ClearDisplayStats()), e_TTL, SLOT(clear()));
+
+	m_lineChart.SetChartView(ChartView);
+	ChartView->setRenderHint(QPainter::Antialiasing);
 
 	m_appCore.start();
 	m_timer.start(m_updateDelay);
@@ -153,4 +158,8 @@ void PingerMainWindow::UpdateDisplay() {
 	emit UpdateMax(m_appCore.GetMax());
 	emit UpdateLost(m_appCore.GetLost());
 	emit UpdateTTL(m_appCore.GetTTL());
+
+	// update charts:
+	m_lineChart.ReplacePoints(m_appCore.GetLatencyPoints());
+	ChartView->repaint();
 }
