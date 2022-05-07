@@ -1,0 +1,25 @@
+* QtPinger
+  A network latency monitoring tool with a Qt5 GUI
+** Features
+   - Measure latency to a host using icmp4 probes
+   - Compute min, max, standard deviation and average latency
+   - Supports pinging several hosts at the same time
+   - Plot latency over time
+** Requirements
+*** C++20
+*** Qt5:
+    - Widgets
+    - Core
+    - Gui
+    - Charts
+*** Boost
+    - program_options
+    - asio
+** Building
+#+BEGIN_SRC <shell>
+   cd QtPinger
+   mkdir bin
+   cd bin
+   cmake ../src
+   make
+#+END_SRC
