@@ -14,6 +14,7 @@ QtPingerCore::~QtPingerCore() {
 
 
 void QtPingerCore::StopPingerThread() {
+	std::cout << "stopping thread" << std::endl;
 	m_ioc.stop();
 	// Qt thread will stop as soon as the run() function returns
 	// that is as soon as m_ioc.run() returns
@@ -103,8 +104,10 @@ bool QtPingerCore::UpdateData() {
 unsigned QtPingerCore::AddHost(QString &hostname) {
 	std::string host_string(hostname.toStdString());
 	while (m_hosts.contains(m_key)) { m_key++; }
+	StopPingerThread();
 	m_pinger.AddHost(host_string, m_key);
 	m_hostStats.insert_or_assign(m_key, HostDataStatistics());
+	start();
 	return m_state = m_key;
 }
 
@@ -115,7 +118,11 @@ void QtPingerCore::DeleteHost() {
 }
 
 void QtPingerCore::run() {
-	m_ioc.run();
+	std::cout << "(re)starting ping" << std::endl;
+	m_pinger.StartPing();
+	std::cout << "running thread" << std::endl;
+	// m_ioc.run();
+	m_ioc.restart();
 }
 
 

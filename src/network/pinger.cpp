@@ -11,15 +11,17 @@ using namespace network;
 // HostInfo
 // 
 
-network::HostInfo::HostInfo(boost::asio::io_context & io,
+network::HostInfo::HostInfo(boost::asio::steady_timer *timer,
 			    icmp::endpoint &host, std::string &hs)
 	: destination(host), sequence(1), reply_received(false)
-	, host_string(hs), m_stimer(io), replies(100), m_newReplies(0) {}
+	, host_string(hs), m_stimer(timer), replies(100), m_newReplies(0) {}
 //                                               ^^^
 //                                 fix this magic constant
 
 
-network::HostInfo::~HostInfo() {}
+network::HostInfo::~HostInfo() {
+	if (!m_stimer) delete m_stimer;
+}
 
 bool network::HostInfo::IsRepliesEmpty() const {
 	return replies.empty();
@@ -64,7 +66,7 @@ network::Pinger::Pinger(std::unordered_map<unsigned, HostInfo> *him, std::mutex 
 	, m_pHosts(him), m_pMutex(mtx), m_ioc(io) {
 
 	m_sendInterval = std::chrono::seconds(1);
-	m_timeOutInterval = std::chrono::seconds(1);
+	m_timeOutInterval = std::chrono::seconds(2);
 
 	// compute and set identifier
 	identifier = 0xA8A8;
@@ -73,8 +75,6 @@ network::Pinger::Pinger(std::unordered_map<unsigned, HostInfo> *him, std::mutex 
 	bufsz = 66000;
 	recvbuff.resize(bufsz, 0);
 
-	startSend();
-	startReceive();
 }
 
 network::Pinger::~Pinger() {}
@@ -83,7 +83,8 @@ network::Pinger::~Pinger() {}
 void network::Pinger::AddHost(std::string &host,  unsigned key) {
 
 	icmp::endpoint dest =  *host_resolver.resolve(icmp::v4(), host, "").begin();
-	HostInfo hi(m_ioc, dest, host);
+	boost::asio::steady_timer *timer = new boost::asio::steady_timer(m_ioc);
+	HostInfo hi(timer, dest, host);
 
 	m_pMutex->lock();
 	m_pHosts->insert_or_assign(key, hi);
@@ -91,6 +92,11 @@ void network::Pinger::AddHost(std::string &host,  unsigned key) {
 	std::cout << "adding host: " << hi.GetDestination() << std::endl;
 }
 
+void network::Pinger::StartPing() {
+	// moved from constructor
+	startSend();
+	startReceive();
+}
 
 void network::Pinger::fillDataBuffer(uint32_t id, uint32_t seq, uint32_t nHost) {
 	if (requestBody.size() < 3 * sizeof(uint32_t)) return;
@@ -132,8 +138,8 @@ void network::Pinger::startSend() {
 		std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
 		h.TimeSent(now); // sets reply_received=false
 
-		h.m_stimer.expires_after(m_timeOutInterval);
-		h.m_stimer.async_wait( [&] (const boost::system::error_code& error)
+		h.m_stimer->expires_after(m_timeOutInterval);
+		h.m_stimer->async_wait( [&] (const boost::system::error_code& error)
 		{
 			if (error) {
 				std::cerr << "timed out timer error "
@@ -163,13 +169,12 @@ void network::Pinger::timeOut() {
 		pr.sequence = h.sequence;
 		h.PushReply(pr);
 
-		h.m_stimer.expires_after(m_sendInterval);
-		h.m_stimer.async_wait( [&] (const boost::system::error_code& error)
+		h.m_stimer->expires_after(m_sendInterval);
+		h.m_stimer->async_wait( [&] (const boost::system::error_code& error)
 		{
 			if (error) {
 				std::cerr << "send timer error "
 					  << error.message() << std::endl;
-				return;
 			}
 			this->startSend();
 		});
@@ -178,9 +183,11 @@ void network::Pinger::timeOut() {
 }
 
 void network::Pinger::startReceive() {
+	std::cout << "startReceive()" << std::endl;
 	sock.async_receive( boost::asio::buffer(recvbuff),
 			    [&] (const boost::system::error_code& error, std::size_t size)
 			    {
+				    std::cout << "startReceive() Lambda" << std::endl;
 				    if(error) {
 					    std::cerr << error.message() << std::endl;
 					    return;
@@ -255,7 +262,7 @@ void network::Pinger::receive(std::size_t size) {
 			// % loss
 
 			h.PushReply(pr);
-			h.m_stimer.cancel();
+			h.m_stimer->cancel();
 		}
 		m_pMutex->unlock();
 	}
