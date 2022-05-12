@@ -50,7 +50,7 @@ namespace network {
 		};
 
 	public:
-		HostInfo(icmp::endpoint &, std::string &);
+		HostInfo(boost::asio::io_context &, icmp::endpoint &, std::string &);
 		virtual ~HostInfo();
 
 		bool IsRepliesEmpty() const;
@@ -68,6 +68,7 @@ namespace network {
 		std::chrono::steady_clock::time_point time_last_sent;
 		bool reply_received; // sent and received (false if not sent) or timeout
 		std::string host_string;
+		boost::asio::steady_timer m_stimer;
 
 		// identifier will be the index in the hostinfo array in Pinger class
 
@@ -108,13 +109,13 @@ namespace network {
 		icmp::resolver host_resolver;
 		icmp::socket sock;
 		uint16_t identifier;
-		boost::asio::steady_timer stimer;
 
 		std::vector<uint8_t> recvbuff, requestBody;
 		unsigned bufsz;
 
 		std::unordered_map<unsigned, HostInfo> *m_pHosts;
 		std::mutex *m_pMutex;
+		boost::asio::io_context &m_ioc;
 
 		
 		std::chrono::duration<long int> m_sendInterval, m_timeOutInterval;

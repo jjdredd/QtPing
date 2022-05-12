@@ -11,10 +11,11 @@ using namespace network;
 // HostInfo
 // 
 
-network::HostInfo::HostInfo(icmp::endpoint &host, std::string &hs)
+network::HostInfo::HostInfo(boost::asio::io_context & io,
+			    icmp::endpoint &host, std::string &hs)
 	: destination(host), sequence(1), reply_received(false)
-	, host_string(hs), replies(100), m_newReplies(0) {}
-//                                 ^^^
+	, host_string(hs), m_stimer(io), replies(100), m_newReplies(0) {}
+//                                               ^^^
 //                                 fix this magic constant
 
 
@@ -59,8 +60,8 @@ icmp::endpoint network::HostInfo::GetDestination() const { return destination; }
 
 network::Pinger::Pinger(std::unordered_map<unsigned, HostInfo> *him, std::mutex *mtx,
 			boost::asio::io_context &io)
-	: host_resolver(io), sock(io, icmp::v4()), stimer(io)
-	, m_pHosts(him), m_pMutex(mtx) {
+	: host_resolver(io), sock(io, icmp::v4())
+	, m_pHosts(him), m_pMutex(mtx), m_ioc(io) {
 
 	m_sendInterval = std::chrono::seconds(1);
 	m_timeOutInterval = std::chrono::seconds(1);
@@ -82,7 +83,7 @@ network::Pinger::~Pinger() {}
 void network::Pinger::AddHost(std::string &host,  unsigned key) {
 
 	icmp::endpoint dest =  *host_resolver.resolve(icmp::v4(), host, "").begin();
-	HostInfo hi(dest, host);
+	HostInfo hi(m_ioc, dest, host);
 
 	m_pMutex->lock();
 	m_pHosts->insert_or_assign(key, hi);
@@ -130,20 +131,20 @@ void network::Pinger::startSend() {
 		sock.send_to(boost::asio::buffer(packet), h.GetDestination());
 		std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
 		h.TimeSent(now); // sets reply_received=false
+
+		h.m_stimer.expires_after(m_timeOutInterval);
+		h.m_stimer.async_wait( [&] (const boost::system::error_code& error)
+		{
+			if (error) {
+				std::cerr << "timed out timer error "
+					  << error.message() << std::endl;
+				return;
+			}
+			this->timeOut();
+		});
+
 	}
 	m_pMutex->unlock();
-
-	// XXX FIXME:
-	// need a timeout timer only when a reply hasn't been received!
-	// otherwise it needs to be cancelled
-	stimer.expires_after(m_timeOutInterval);
-	stimer.async_wait( [&] (const boost::system::error_code& error)
-	{
-		if (error) {
-			std::cerr << "start send error " << error.message() << std::endl;
-		}
-		this->timeOut();
-	});
 }
 
 void network::Pinger::timeOut() {
@@ -161,17 +162,19 @@ void network::Pinger::timeOut() {
 		pr.status = HostInfo::Timeout;
 		pr.sequence = h.sequence;
 		h.PushReply(pr);
+
+		h.m_stimer.expires_after(m_sendInterval);
+		h.m_stimer.async_wait( [&] (const boost::system::error_code& error)
+		{
+			if (error) {
+				std::cerr << "send timer error "
+					  << error.message() << std::endl;
+				return;
+			}
+			this->startSend();
+		});
 	}
 	m_pMutex->unlock();
-
-	stimer.expires_after(m_sendInterval);
-	stimer.async_wait( [&] (const boost::system::error_code& error)
-	{
-		if (error) {
-			std::cerr << "timeout error " << error.message() << std::endl;
-		}
-		this->startSend();
-	});
 }
 
 void network::Pinger::startReceive() {
@@ -252,6 +255,7 @@ void network::Pinger::receive(std::size_t size) {
 			// % loss
 
 			h.PushReply(pr);
+			h.m_stimer.cancel();
 		}
 		m_pMutex->unlock();
 	}
