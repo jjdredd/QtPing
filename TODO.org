@@ -1,0 +1,10 @@
+* Host addition
+** Should be done asynchronously,
+   Host resolution must be done immediately,
+   the rest must be async, done between send+receive
+   sequences (after previous recv and before next send)
+** To help accomplish this, we might need to
+   set a flag that stops execution after all replies are
+   received or timeouts have expired. This way the
+   context will return by itself.
+** Rewrite the test for the new setting.
