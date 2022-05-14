@@ -14,10 +14,10 @@ QtPingerCore::~QtPingerCore() {
 
 
 void QtPingerCore::StopPingerThread() {
-	std::cout << "stopping thread" << std::endl;
 	m_ioc.stop();
 	// Qt thread will stop as soon as the run() function returns
 	// that is as soon as m_ioc.run() returns
+	// Qt emits a signal when thread finishes
 }
 
 QString QtPingerCore::GetHostName() {
@@ -79,6 +79,8 @@ bool QtPingerCore::IsDataOK() { return m_isDataOk; }
 
 bool QtPingerCore::UpdateData() {
 	std::lock_guard<std::mutex> lock(m_mutex);
+	std::cout << "\t Thread running? " << isRunning()
+		  << ", IOC stopped? " << m_ioc.stopped() << std::endl;
 	for (auto it = m_hosts.begin(); it != m_hosts.end(); it++) {
 		std::vector<network::HostInfo::ping_reply> rv;
 		rv = it->second.GetNewReplies();
@@ -104,10 +106,14 @@ bool QtPingerCore::UpdateData() {
 unsigned QtPingerCore::AddHost(QString &hostname) {
 	std::string host_string(hostname.toStdString());
 	while (m_hosts.contains(m_key)) { m_key++; }
-	StopPingerThread();
 	m_pinger.AddHost(host_string, m_key);
 	m_hostStats.insert_or_assign(m_key, HostDataStatistics());
-	start();
+	std::cout << "Thread running? " << isRunning()
+		  << ", IOC stopped? " << m_ioc.stopped() << std::endl;
+	if (!isRunning()) {
+		std::cout << "Thread not running, STARTING" << std::endl;
+		start();
+	}
 	return m_state = m_key;
 }
 
@@ -118,11 +124,16 @@ void QtPingerCore::DeleteHost() {
 }
 
 void QtPingerCore::run() {
-	std::cout << "(re)starting ping" << std::endl;
-	m_pinger.StartPing();
 	std::cout << "running thread" << std::endl;
-	// m_ioc.run();
-	m_ioc.restart();
+	m_pinger.StartPing();
+	if (m_ioc.stopped()) {
+		std::cout << "REstarting ioc" << std::endl;
+		m_ioc.restart();
+		m_ioc.run();
+	} else {
+		std::cout << "starting ioc" << std::endl;
+		m_ioc.run();
+	}
 }
 
 

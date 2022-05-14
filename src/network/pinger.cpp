@@ -20,7 +20,13 @@ network::HostInfo::HostInfo(boost::asio::steady_timer *timer,
 
 
 network::HostInfo::~HostInfo() {
-	if (!m_stimer) delete m_stimer;
+	
+	if (m_stimer) {
+		std::cout << "deleting timer in network::HostInfo::~HostInfo()"
+			  << std::endl;
+		m_stimer->cancel();
+		delete m_stimer;
+	}
 }
 
 bool network::HostInfo::IsRepliesEmpty() const {
@@ -74,11 +80,9 @@ network::Pinger::Pinger(std::unordered_map<unsigned, HostInfo> *him, std::mutex 
 
 	bufsz = 66000;
 	recvbuff.resize(bufsz, 0);
-
 }
 
 network::Pinger::~Pinger() {}
-
 
 void network::Pinger::AddHost(std::string &host,  unsigned key) {
 
@@ -89,11 +93,13 @@ void network::Pinger::AddHost(std::string &host,  unsigned key) {
 	m_pMutex->lock();
 	m_pHosts->insert_or_assign(key, hi);
 	m_pMutex->unlock();
-	std::cout << "adding host: " << hi.GetDestination() << std::endl;
+	std::cout << "adding host: " << hi.GetDestination()
+		  << " with key " << key << std::endl;
 }
 
 void network::Pinger::StartPing() {
 	// moved from constructor
+	std::cout << "network::Pinger::StartPing()" << std::endl;
 	startSend();
 	startReceive();
 }
@@ -138,13 +144,13 @@ void network::Pinger::startSend() {
 		std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
 		h.TimeSent(now); // sets reply_received=false
 
+		std::cout << "TimeOut Timer" << std::endl;
 		h.m_stimer->expires_after(m_timeOutInterval);
 		h.m_stimer->async_wait( [&] (const boost::system::error_code& error)
 		{
 			if (error) {
 				std::cerr << "timed out timer error "
 					  << error.message() << std::endl;
-				return;
 			}
 			this->timeOut();
 		});
@@ -161,20 +167,20 @@ void network::Pinger::timeOut() {
 		HostInfo::ping_reply pr;
 		// if haven't received, push reply structure set to timed out
 
-		if (h.reply_received) {
-			continue;
+		if (!h.reply_received) {
+			pr.status = HostInfo::Timeout;
+			pr.sequence = h.sequence;
+			h.PushReply(pr);
 		}
 
-		pr.status = HostInfo::Timeout;
-		pr.sequence = h.sequence;
-		h.PushReply(pr);
-
+		std::cout << "Send Timer" << std::endl;
 		h.m_stimer->expires_after(m_sendInterval);
 		h.m_stimer->async_wait( [&] (const boost::system::error_code& error)
 		{
 			if (error) {
 				std::cerr << "send timer error "
 					  << error.message() << std::endl;
+				return;
 			}
 			this->startSend();
 		});
@@ -258,7 +264,7 @@ void network::Pinger::receive(std::size_t size) {
 				  << " milliseconds, ttl " << pr.time_to_live
 				  << " from " << pr.remote_hostname
 				  << " (" << pr.remote_ip.to_string() << ')'
-				  << std::endl;
+				  << " key: " << host_key << std::endl;
 			// % loss
 
 			h.PushReply(pr);

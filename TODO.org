@@ -7,4 +7,10 @@
    set a flag that stops execution after all replies are
    received or timeouts have expired. This way the
    context will return by itself.
+*** How do we tell when the context returns by itself?
+    and when all the handlers are done?
 ** Rewrite the test for the new setting.
+** Timer pointer must be shared ptr preventing accidental destruciton
+** all functions (send, timeout, etc) in pinger must be done per host
+   NOT for all hosts
+** Cancel timer before deleting

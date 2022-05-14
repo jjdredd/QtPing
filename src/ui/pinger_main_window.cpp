@@ -75,7 +75,6 @@ PingerMainWindow::PingerMainWindow(QWidget *parent)
 	m_lineChart.SetChartView(ChartView);
 	ChartView->setRenderHint(QPainter::Antialiasing);
 
-	m_appCore.start();
 	m_timer.start(m_updateDelay);
 
 }
