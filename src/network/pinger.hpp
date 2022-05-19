@@ -7,6 +7,7 @@
 #include <chrono>
 #include <string>
 #include <mutex>
+#include <memory>
 #include <unordered_map>
 
 #include <boost/system/error_code.hpp>
@@ -68,7 +69,7 @@ namespace network {
 		std::chrono::steady_clock::time_point time_last_sent;
 		bool reply_received; // sent and received (false if not sent) or timeout
 		std::string host_string;
-		boost::asio::steady_timer *m_stimer;
+		std::shared_ptr<stdboost::asio::steady_timer> m_stimer;
 
 		// identifier will be the index in the hostinfo array in Pinger class
 
