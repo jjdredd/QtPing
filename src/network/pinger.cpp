@@ -20,12 +20,8 @@ network::HostInfo::HostInfo(boost::asio::steady_timer *timer,
 
 
 network::HostInfo::~HostInfo() {
-	
 	if (m_stimer) {
-		std::cout << "deleting timer in network::HostInfo::~HostInfo()"
-			  << std::endl;
 		m_stimer->cancel();
-		delete m_stimer;
 	}
 }
 
@@ -98,10 +94,16 @@ void network::Pinger::AddHost(std::string &host,  unsigned key) {
 }
 
 void network::Pinger::StartPing() {
-	// moved from constructor
 	std::cout << "network::Pinger::StartPing()" << std::endl;
-	startSend();
+	for (auto it = m_pHosts->begin(); it != m_pHosts->end(); it++) {
+		startSend(it->first);
+	}
 	startReceive();
+}
+
+void network::Pinger::StartHostPing(unsigned key, bool receive = false) {
+	startSend(key);
+	if (receive) { startReceive(); }
 }
 
 void network::Pinger::fillDataBuffer(uint32_t id, uint32_t seq, uint32_t nHost) {
@@ -120,80 +122,79 @@ void network::Pinger::parseDataBuffer(uint32_t &id, uint32_t &seq, uint32_t &nHo
 	nHost = array[2];
 }
 
-void network::Pinger::startSend() {
-
+void network::Pinger::startSend(unsigned key) {
 	m_pMutex->lock();
-	for (auto it = m_pHosts->begin(); it != m_pHosts->end(); it++) {
-		HostInfo &h = it->second;
-		unsigned key = it->first;
+	if (!m_pHosts->contains(key)) { return; }
+	HostInfo &h = m_pHosts->at(key);
 
-		ICMP4Proto protocol;
-		requestBody.resize(s_dataBufferSize, 0xFF);
-		fillDataBuffer(identifier, h.sequence, key);
+	ICMP4Proto protocol;
+	requestBody.resize(s_dataBufferSize, 0xFF);
+	fillDataBuffer(identifier, h.sequence, key);
 
-		std::vector<uint8_t> packet = protocol.CreateEchoPacket(requestBody,
-									identifier,
-									h.sequence);
+	std::vector<uint8_t> packet = protocol.CreateEchoPacket(requestBody,
+								identifier,
+								h.sequence);
 
-		std::cerr << ">>>> sending " << packet.size() << " bytes, Sequence "
-			  << h.sequence << ", to: "
-			  << h.GetDestination()
-			  << ", state " << key << std::endl;
+	std::cerr << ">>>> sending " << packet.size() << " bytes, Sequence "
+		  << h.sequence << ", to: "
+		  << h.GetDestination()
+		  << ", state " << key << std::endl;
 
-		sock.send_to(boost::asio::buffer(packet), h.GetDestination());
-		std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-		h.TimeSent(now); // sets reply_received=false
+	sock.send_to(boost::asio::buffer(packet), h.GetDestination());
+	std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+	h.TimeSent(now); // sets reply_received=false
 
-		std::cout << "TimeOut Timer" << std::endl;
-		h.m_stimer->expires_after(m_timeOutInterval);
-		h.m_stimer->async_wait( [&] (const boost::system::error_code& error)
-		{
-			if (error) {
-				std::cerr << "timed out timer error "
-					  << error.message() << std::endl;
-			}
-			this->timeOut();
-		});
+	h.m_stimer->expires_after(m_timeOutInterval);
+	h.m_stimer->async_wait( [&, key] (const boost::system::error_code& error)
+	{
+		if (error) {
+			// print error only when timer isn't cancelled
+			// std::cerr << "timed out timer error "
+			// 	  << error.message() << std::endl;
+		}
+		this->timeOut(key);
+	});
 
-	}
 	m_pMutex->unlock();
 }
 
-void network::Pinger::timeOut() {
+//
+// Rename all these handlers/funcitons etc
+//
+// 
+
+void network::Pinger::timeOut(unsigned key) {
 	m_pMutex->lock();
-	for (auto it = m_pHosts->begin(); it != m_pHosts->end(); it++) {
-		HostInfo &h = it->second;
+	if (!m_pHosts->contains(key)) { return; }
+	HostInfo &h = m_pHosts->at(key);
 
-		HostInfo::ping_reply pr;
-		// if haven't received, push reply structure set to timed out
+	HostInfo::ping_reply pr;
+	// if haven't received, push reply structure set to timed out
 
-		if (!h.reply_received) {
-			pr.status = HostInfo::Timeout;
-			pr.sequence = h.sequence;
-			h.PushReply(pr);
-		}
-
-		std::cout << "Send Timer" << std::endl;
-		h.m_stimer->expires_after(m_sendInterval);
-		h.m_stimer->async_wait( [&] (const boost::system::error_code& error)
-		{
-			if (error) {
-				std::cerr << "send timer error "
-					  << error.message() << std::endl;
-				return;
-			}
-			this->startSend();
-		});
+	if (!h.reply_received) {
+		pr.status = HostInfo::Timeout;
+		pr.sequence = h.sequence;
+		h.PushReply(pr);
 	}
+
+	h.m_stimer->expires_after(m_sendInterval);
+	h.m_stimer->async_wait( [&, key] (const boost::system::error_code& error)
+	{
+		if (error) {
+			// std::cerr << "send timer error "
+			// 	  << error.message() << std::endl;
+			return;
+		}
+		this->startSend(key);
+	});
+
 	m_pMutex->unlock();
 }
 
 void network::Pinger::startReceive() {
-	std::cout << "startReceive()" << std::endl;
 	sock.async_receive( boost::asio::buffer(recvbuff),
 			    [&] (const boost::system::error_code& error, std::size_t size)
 			    {
-				    std::cout << "startReceive() Lambda" << std::endl;
 				    if(error) {
 					    std::cerr << error.message() << std::endl;
 					    return;

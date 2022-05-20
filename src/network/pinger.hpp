@@ -69,7 +69,7 @@ namespace network {
 		std::chrono::steady_clock::time_point time_last_sent;
 		bool reply_received; // sent and received (false if not sent) or timeout
 		std::string host_string;
-		std::shared_ptr<stdboost::asio::steady_timer> m_stimer;
+		std::shared_ptr<boost::asio::steady_timer> m_stimer;
 
 		// identifier will be the index in the hostinfo array in Pinger class
 
@@ -93,6 +93,7 @@ namespace network {
 
 		void AddHost(std::string &, unsigned key);
 		void StartPing();
+		void StartHostPing(unsigned, bool);
 
 	private:
 
@@ -103,9 +104,9 @@ namespace network {
 		// (maybe withoout timestamp at first)
 		void parseDataBuffer(uint32_t &, uint32_t &, uint32_t &);
 
-		void startSend();
+		void startSend(unsigned);
 		void startReceive();
-		void timeOut();
+		void timeOut(unsigned);
 		void receive(std::size_t);
 
 		icmp::resolver host_resolver;
