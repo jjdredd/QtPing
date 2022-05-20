@@ -216,12 +216,23 @@ void network::Pinger::receive(std::size_t size) {
 		return;
 	}
 
+	// time for latency calculation
+	std::chrono::steady_clock::time_point time_received
+		= std::chrono::steady_clock::now();
+
+	// parse IP header
 	int ip_size = ip_header.ParsePacket(recvbuff);
 
+	// parse ICMP header
 	std::vector<uint8_t> icmp_content(recvbuff.begin() + ip_size, recvbuff.end());
 	ICMP4Proto::Type icmp_type = protocol.ParseReply(icmp_content, data_offset);
 
 	requestBody.assign(icmp_content.begin() + data_offset, icmp_content.end());
+
+	// reverse dns resolve remote host
+	icmp::endpoint remote_ep;
+	remote_ep.address(ip_header.source_address());
+	std::string remote_hostname = host_resolver.resolve(remote_ep).begin()->host_name();
 
 	if (icmp_type != ICMP4Proto::EchoReply) {
 		// not an echo reply packet,
@@ -241,22 +252,13 @@ void network::Pinger::receive(std::size_t size) {
 		    && m_pHosts->contains(host_key) ) {
 		
 			HostInfo &h = m_pHosts->at(host_key);
-			icmp::endpoint remote_ep;
 
-			std::chrono::steady_clock::time_point now
-				= std::chrono::steady_clock::now();
-
-			pr.latency = now - h.time_last_sent;
+			pr.latency = time_received - h.time_last_sent;
 			pr.status = HostInfo::Reply;
 			pr.time_to_live = ip_header.time_to_live();
 			pr.sequence = protocol.GetSequenceNumber();
 			pr.remote_ip = ip_header.source_address();
-
-			// reverse resolve remote hostname (add error check?)
-			remote_ep.address(pr.remote_ip);
-
-			pr.remote_hostname
-				= host_resolver.resolve(remote_ep).begin()->host_name();
+			pr.remote_hostname = remote_hostname;
 
 			// testing
 			std::cout << "\t Sequence " << pr.sequence
