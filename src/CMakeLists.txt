@@ -13,7 +13,7 @@ endif()
 
 
 find_package(Boost 1.36.0 REQUIRED COMPONENTS program_options system REQUIRED)
-find_package(Qt5 COMPONENTS Widgets Core Gui Charts REQUIRED)
+find_package(Qt5 5.15 REQUIRED COMPONENTS Widgets Core Gui Charts REQUIRED)
 
 
 # set CFLAGS etc
@@ -30,7 +30,9 @@ add_subdirectory(core)
 add_subdirectory(ui)
 add_subdirectory(test)
 
-add_executable(main.elf main.cpp)
+set(MAIN_SOURCES main.cpp)
+qt_add_resources(MAIN_SOURCES resource.qrc)
+add_executable(main.elf ${MAIN_SOURCES})
 set_target_properties(main.elf PROPERTIES LINK_FLAGS "-lpthread")
 target_link_libraries(main.elf
   PUBLIC network
