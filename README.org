@@ -5,6 +5,8 @@
    - Compute min, max, standard deviation and average latency
    - Supports pinging several hosts at the same time
    - Plot latency over time
+** Screenshot
+   [[./screenshots/screenshot.png][screenshot]]
 ** Requirements
 *** C++20
 *** Qt5:

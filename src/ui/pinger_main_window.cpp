@@ -22,6 +22,9 @@ PingerMainWindow::PingerMainWindow(QWidget *parent)
 
  	setupUi(this);
 	
+	// set icon
+	setWindowIcon(QIcon(m_trayPic));
+
 	e_HostName->setReadOnly(true);
 	e_Address->setReadOnly(true);
 	e_Average->setReadOnly(true);
@@ -171,10 +174,9 @@ void PingerMainWindow::UpdateDisplay() {
 }
 
 void PingerMainWindow::initTrayIcon() {
-	QIcon icon(m_trayPic);
 	connect(&m_trayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)),
 		this, SLOT(trayClicked(QSystemTrayIcon::ActivationReason)));
-	m_trayIcon.setIcon(icon);
+	m_trayIcon.setIcon(QIcon(m_trayPic));
 	m_trayIcon.show();
 	return;
 }
