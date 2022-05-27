@@ -82,7 +82,7 @@ private:
 	QSystemTrayIcon m_trayIcon;
 	bool m_hiddenState;
 
-	inline static const QString m_trayPic{"qrc:///resources/tray_icon.png"};
+	inline static const QString m_trayPic{":/tray_icon.png"};
 
 public slots:
 
