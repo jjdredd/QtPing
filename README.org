@@ -6,7 +6,7 @@
    - Supports pinging several hosts at the same time
    - Plot latency over time
 ** Screenshot
-   [[./screenshots/screenshot.png][screenshot]]
+   [[./screenshots/screenshot.png]]
 ** Requirements
 *** C++20
 *** Qt5:
