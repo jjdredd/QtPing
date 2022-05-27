@@ -32,32 +32,32 @@ QString QtPingerCore::GetAddress() {
 
 QString QtPingerCore::GetCurrent() {
 	if (!m_hostStats.contains(m_state)) { return QString(); }
-	return QString::number(m_hostStats.at(m_state).GetPing(), 'f');
+	return QString::number(m_hostStats.at(m_state).GetPing(), 'f', 2);
 }
 
 QString QtPingerCore::GetAverage() {
 	if (!m_hostStats.contains(m_state)) { return QString(); }
-	return QString::number(m_hostStats.at(m_state).GetMean(), 'f');
+	return QString::number(m_hostStats.at(m_state).GetMean(), 'f', 2);
 }
 
 QString QtPingerCore::GetStdDev() {
 	if (!m_hostStats.contains(m_state)) { return QString(); }
-	return QString::number(m_hostStats.at(m_state).GetStdDev(), 'f');
+	return QString::number(m_hostStats.at(m_state).GetStdDev(), 'f', 2);
 }
 
 QString QtPingerCore::GetMin() {
 	if (!m_hostStats.contains(m_state)) { return QString(); }
-	return QString::number(m_hostStats.at(m_state).GetMin(), 'f');
+	return QString::number(m_hostStats.at(m_state).GetMin(), 'f', 2);
 }
 
 QString QtPingerCore::GetMax() {
 	if (!m_hostStats.contains(m_state)) { return QString(); }
-	return QString::number(m_hostStats.at(m_state).GetMax(), 'f');
+	return QString::number(m_hostStats.at(m_state).GetMax(), 'f', 2);
 }
 
 QString QtPingerCore::GetLost() {
 	if (!m_hostStats.contains(m_state)) { return QString(); }
-	return QString::number(m_hostStats.at(m_state).GetLostPercent(), 'f');
+	return QString::number(m_hostStats.at(m_state).GetLostPercent(), 'f', 2);
 }
 
 QString QtPingerCore::GetTTL() {

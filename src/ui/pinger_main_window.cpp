@@ -165,7 +165,7 @@ void PingerMainWindow::UpdateDisplay() {
 	ChartView->repaint();
 
 	// tooltip for tray icon
-	m_trayIcon.setToolTip(e_Address->text() + "   "
+	m_trayIcon.setToolTip(e_Address->text() + ":   "
 			      + e_currentPing->text()
 			      + " ms.");
 }
