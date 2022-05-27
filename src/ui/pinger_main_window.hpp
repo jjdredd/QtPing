@@ -5,6 +5,7 @@
 #include <QString>
 #include <QThread>
 #include <QTimer>
+#include <QSystemTrayIcon>
 
 #include <boost/asio.hpp>
 #include <boost/system/error_code.hpp>
@@ -70,11 +71,18 @@ public:
 	virtual ~PingerMainWindow();	// delete all the widgets?
 
 private:
+
+	void initTrayIcon();
+
 	QtPingerCore m_appCore;
 	QTimer m_timer;
 	unsigned m_updateDelay;
 	std::list<HostListItem *> m_listItems;
 	PingLineChart m_lineChart;
+	QSystemTrayIcon m_trayIcon;
+	bool m_hiddenState;
+
+	inline static const QString m_trayPic{"qrc:///resources/tray_icon.png"};
 
 public slots:
 
@@ -87,6 +95,9 @@ public slots:
 	// buttons
 	void AddHost();
 	void DeleteHost();
+
+	// tray icon slots
+	void trayClicked(QSystemTrayIcon::ActivationReason);
 
 signals:
 

@@ -12,7 +12,7 @@
 // 
 
 PingerMainWindow::PingerMainWindow(QWidget *parent)
-	: QMainWindow(parent), m_lineChart(20) {
+	: QMainWindow(parent), m_lineChart(20), m_trayIcon(parent), m_hiddenState(false) {
 	//                               ^^
 	// Fix this magic constant!!!    ^^
 
@@ -74,6 +74,8 @@ PingerMainWindow::PingerMainWindow(QWidget *parent)
 
 	m_lineChart.SetChartView(ChartView);
 	ChartView->setRenderHint(QPainter::Antialiasing);
+
+	initTrayIcon();
 
 	m_timer.start(m_updateDelay);
 
@@ -161,4 +163,37 @@ void PingerMainWindow::UpdateDisplay() {
 	// update charts:
 	m_lineChart.ReplacePoints(m_appCore.GetLatencyPoints());
 	ChartView->repaint();
+
+	// tooltip for tray icon
+	m_trayIcon.setToolTip(e_Address->text() + "   "
+			      + e_currentPing->text()
+			      + " ms.");
+}
+
+void PingerMainWindow::initTrayIcon() {
+	QIcon icon(m_trayPic);
+	connect(&m_trayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)),
+		this, SLOT(trayClicked(QSystemTrayIcon::ActivationReason)));
+	m_trayIcon.setIcon(icon);
+	m_trayIcon.show();
+	return;
+}
+
+void PingerMainWindow::trayClicked(QSystemTrayIcon::ActivationReason reason) {
+	switch (reason) {
+	case QSystemTrayIcon::Trigger:
+	case QSystemTrayIcon::DoubleClick:
+		if (m_hiddenState) {
+			showNormal();
+		} else {
+			hide();
+		}
+		m_hiddenState = !m_hiddenState;
+		break;
+	case QSystemTrayIcon::MiddleClick:
+
+		break;
+	default:
+		break;
+	}
 }
