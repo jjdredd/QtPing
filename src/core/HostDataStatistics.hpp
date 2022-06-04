@@ -6,6 +6,8 @@
 #include "statistics.hpp"
 #include "pinger.hpp"
 
+static const unsigned MaxLostToReport = 10;
+
 using namespace network;
 
 class HostDataStatistics {
@@ -19,7 +21,7 @@ public:
 	HostDataStatistics()
 		: m_currentPing(0), m_min(10000), m_max(0)
 		, m_timeToLive(0), m_nAnswered(0), m_nLost(0)
-		, m_stdDev(0) {}
+		, m_nlastLost(0), m_nMaxLost(MaxLostToReport), m_stdDev(0) {}
 
 	~HostDataStatistics() {}
 
@@ -31,6 +33,7 @@ public:
 	void ReplyUpdateSingle(const HostInfo::ping_reply &pr) {
 		if (pr.status != HostInfo::Reply) {
 			m_nLost++;
+			m_nlastLost++;
 			return;
 		}
 
@@ -45,11 +48,13 @@ public:
 
 		if (m_currentPing < m_min) { m_min = m_currentPing; }
 		if (m_currentPing > m_max) { m_max = m_currentPing; }
+		m_nlastLost = 0;
 	}
 
 	// setters
 	void SetHostName(QString &hn) { m_hostName = hn; }
 	void SetIpAddress(QString &ipa) { m_ipAddress = ipa; }
+	void SetMaxLost(unsigned n) { m_nMaxLost = n; }
 
 	// getters
 	QString GetHostName() const { return m_hostName; }
@@ -67,11 +72,14 @@ public:
 	float GetStdDev() const { return m_stdDev.CurrentValue(); }
 
 	unsigned GetTTL() const { return m_timeToLive; }
+
+	bool ReportDisconnect() const { return m_nlastLost >= m_nMaxLost; }
 	
 private:
 	QString m_hostName, m_ipAddress;
 	float m_currentPing, m_min, m_max;
 	unsigned m_timeToLive, m_sequence, m_nAnswered, m_nLost;
+	unsigned m_nlastLost, m_nMaxLost;
 
 	StatAggregatorWelfordStD<float> m_stdDev;
 

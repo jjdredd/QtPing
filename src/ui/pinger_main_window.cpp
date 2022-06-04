@@ -169,8 +169,15 @@ void PingerMainWindow::UpdateDisplay() {
 
 	// tooltip for tray icon
 	m_trayIcon.setToolTip(e_Address->text() + ":   "
-			      + e_currentPing->text()
-			      + " ms.");
+			      + e_currentPing->text() + " ms.");
+
+	// tray message
+	QString lost_hosts;
+	if (m_appCore.GetDisconnectedHosts(lost_hosts)) {
+		m_trayIcon.showMessage("Lost Connection to Host",
+				       QString("LostConnection to host(s):")
+				       + lost_hosts);
+	}
 }
 
 void PingerMainWindow::initTrayIcon() {

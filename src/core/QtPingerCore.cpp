@@ -69,6 +69,22 @@ QVector<QPointF> QtPingerCore::GetLatencyPoints() const {
 	return latencyPoints;
 }
 
+bool QtPingerCore::GetDisconnectedHosts(QString &hostnames) {
+	bool result = false;
+	hostnames.clear();
+	std::lock_guard<std::mutex> lock(m_mutex);
+	for (auto it = m_hostStats.begin(); it != m_hostStats.end(); it++) {
+		if(it->second.ReportDisconnect()) {
+			result = true;
+			if(hostnames.isEmpty()){
+				hostnames.append(", ");
+			}
+			hostnames.append(it->second.GetHostName());
+		}
+	}
+	return result;
+}
+
 
 // Check if the state is existing
 void QtPingerCore::SelectState(unsigned state) { m_state = state; }

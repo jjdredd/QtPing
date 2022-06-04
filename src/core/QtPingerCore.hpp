@@ -38,6 +38,8 @@ public:
 	QString GetTTL();
 	QVector<QPointF> GetLatencyPoints() const;
 
+	bool GetDisconnectedHosts(QString &);
+
 	void SelectState(unsigned); // select current state using a key
 	unsigned GetState() const;
 
