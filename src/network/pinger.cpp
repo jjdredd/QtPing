@@ -160,7 +160,7 @@ void network::Pinger::startSend(unsigned key) {
 
 void network::Pinger::timeOut(unsigned key) {
 	std::lock_guard<std::mutex> lock(*m_pMutex);
-	if (!m_pHosts->contains(key)) {	return; }
+	if (!m_pHosts->contains(key)) { return; }
 	HostInfo &h = m_pHosts->at(key);
 
 	HostInfo::ping_reply pr;
@@ -265,8 +265,8 @@ void network::Pinger::receive(std::size_t size) {
 
 			h.PushReply(pr);
 			h.m_stimer->cancel();
-                }
-                m_pMutex->unlock();
+		}
+		m_pMutex->unlock();
 	}
 
 	startReceive();
