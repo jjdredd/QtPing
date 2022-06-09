@@ -18,7 +18,8 @@ find_package(Qt5 5.15 REQUIRED COMPONENTS Widgets Core Gui Charts REQUIRED)
 
 # set CFLAGS etc
 set(WFLAGS "-W -Wall -Wextra -g -std=c++20")
-set(CMAKE_CXX_FLAGS  "${WFLAGS}")
+set(CFLAGS_CPU "-march=x86-64 -mtune=generic")
+set(CMAKE_CXX_FLAGS  "${WFLAGS} ${CFLAGS_CPU}")
 
 include_directories(AFTER ${Boost_INCLUDE_DIR})
 include_directories(AFTER "${CMake_SOURCE_DIR}/network")

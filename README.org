@@ -25,3 +25,5 @@
    cmake ../src
    make
 #+END_SRC
+** Running
+   Requires root priviledges to run
