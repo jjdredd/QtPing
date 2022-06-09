@@ -117,6 +117,9 @@ bool QtPingerCore::UpdateData() {
 }
 
 
+//
+// XXX: Better state number allocation after deletion of states
+// 
 unsigned QtPingerCore::AddHost(QString &hostname) {
 	std::string host_string(hostname.toStdString());
 	while (m_hosts.contains(m_key)) { m_key++; }

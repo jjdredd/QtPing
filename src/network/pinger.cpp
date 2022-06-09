@@ -86,11 +86,8 @@ void network::Pinger::AddHost(std::string &host,  unsigned key) {
 	boost::asio::steady_timer *timer = new boost::asio::steady_timer(m_ioc);
 	HostInfo hi(timer, dest, host);
 
-	m_pMutex->lock();
+	std::lock_guard<std::mutex> lock(*m_pMutex);
 	m_pHosts->insert_or_assign(key, hi);
-	m_pMutex->unlock();
-	std::cout << "adding host: " << hi.GetDestination()
-		  << " with key " << key << std::endl;
 }
 
 void network::Pinger::StartPing() {
@@ -123,7 +120,7 @@ void network::Pinger::parseDataBuffer(uint32_t &id, uint32_t &seq, uint32_t &nHo
 }
 
 void network::Pinger::startSend(unsigned key) {
-	m_pMutex->lock();
+	std::lock_guard<std::mutex> lock(*m_pMutex);
 	if (!m_pHosts->contains(key)) { return; }
 	HostInfo &h = m_pHosts->at(key);
 
@@ -154,8 +151,6 @@ void network::Pinger::startSend(unsigned key) {
 		}
 		this->timeOut(key);
 	});
-
-	m_pMutex->unlock();
 }
 
 //
@@ -164,8 +159,8 @@ void network::Pinger::startSend(unsigned key) {
 // 
 
 void network::Pinger::timeOut(unsigned key) {
-	m_pMutex->lock();
-	if (!m_pHosts->contains(key)) { return; }
+	std::lock_guard<std::mutex> lock(*m_pMutex);
+	if (!m_pHosts->contains(key)) {	return; }
 	HostInfo &h = m_pHosts->at(key);
 
 	HostInfo::ping_reply pr;
@@ -187,8 +182,6 @@ void network::Pinger::timeOut(unsigned key) {
 		}
 		this->startSend(key);
 	});
-
-	m_pMutex->unlock();
 }
 
 void network::Pinger::startReceive() {
@@ -272,8 +265,8 @@ void network::Pinger::receive(std::size_t size) {
 
 			h.PushReply(pr);
 			h.m_stimer->cancel();
-		}
-		m_pMutex->unlock();
+                }
+                m_pMutex->unlock();
 	}
 
 	startReceive();
